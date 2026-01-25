@@ -200,67 +200,97 @@ build-all: build-windows-x64-msvc build-windows-arm64-msvc build-all-linux
 # Distribution directory
 dist_dir := "dist"
 
+# Files to include in release packages
+release_files := "README.md LICENSE dist/QUICK_START.md dist/config.example.toml"
+
 # Create dist directory
 _mkdir-dist:
     @mkdir -p {{dist_dir}}
 
 # Package Linux x64
 package-linux-x64: build-linux-x64 _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-linux-x86_64.tar.gz \
-        -C target/x86_64-unknown-linux-gnu/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-linux-x86_64.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/x86_64-unknown-linux-gnu/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-x86_64-unknown-linux-gnu.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-x86_64-unknown-linux-gnu.tar.gz"
 
 # Package Linux x64 (musl)
 package-linux-x64-musl: build-linux-x64-musl _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-linux-x86_64-musl.tar.gz \
-        -C target/x86_64-unknown-linux-musl/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-linux-x86_64-musl.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/x86_64-unknown-linux-musl/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-x86_64-unknown-linux-musl.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-x86_64-unknown-linux-musl.tar.gz"
 
 # Package Linux ARM64
 package-linux-arm64: build-linux-arm64 _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-linux-aarch64.tar.gz \
-        -C target/aarch64-unknown-linux-gnu/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-linux-aarch64.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/aarch64-unknown-linux-gnu/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-aarch64-unknown-linux-gnu.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-aarch64-unknown-linux-gnu.tar.gz"
 
 # Package Linux ARM64 (musl)
 package-linux-arm64-musl: build-linux-arm64-musl _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-linux-aarch64-musl.tar.gz \
-        -C target/aarch64-unknown-linux-musl/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-linux-aarch64-musl.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/aarch64-unknown-linux-musl/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-aarch64-unknown-linux-musl.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-aarch64-unknown-linux-musl.tar.gz"
 
 # Package Windows x64 (GNU)
 package-windows-x64-gnu: build-windows-x64-gnu _mkdir-dist
-    @cd target/x86_64-pc-windows-gnu/release && \
-        zip ../../../{{dist_dir}}/rtfm-windows-x86_64-gnu.zip rtfm.exe
-    @echo "Created: {{dist_dir}}/rtfm-windows-x86_64-gnu.zip"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/x86_64-pc-windows-gnu/release/rtfm.exe {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @cd {{dist_dir}}/staging && zip -r ../rtfm-x86_64-pc-windows-gnu.zip .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-x86_64-pc-windows-gnu.zip"
 
 # [Windows] Package Windows x64 (MSVC)
 [windows]
 package-windows-x64-msvc: build-windows-x64-msvc _mkdir-dist
-    @cd target/x86_64-pc-windows-msvc/release && \
-        7z a ../../../{{dist_dir}}/rtfm-windows-x86_64.zip rtfm.exe
-    @echo "Created: {{dist_dir}}/rtfm-windows-x86_64.zip"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/x86_64-pc-windows-msvc/release/rtfm.exe {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @cd {{dist_dir}}/staging && 7z a ../rtfm-x86_64-pc-windows-msvc.zip .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-x86_64-pc-windows-msvc.zip"
 
 # [macOS] Package macOS Universal
 [macos]
 package-macos-universal: build-macos-universal _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-macos-universal.tar.gz \
-        -C target/universal-apple-darwin/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-macos-universal.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/universal-apple-darwin/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-universal-apple-darwin.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-universal-apple-darwin.tar.gz"
 
 # [macOS] Package macOS x64
 [macos]
 package-macos-x64: build-macos-x64 _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-macos-x86_64.tar.gz \
-        -C target/x86_64-apple-darwin/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-macos-x86_64.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/x86_64-apple-darwin/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-x86_64-apple-darwin.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-x86_64-apple-darwin.tar.gz"
 
 # [macOS] Package macOS ARM64
 [macos]
 package-macos-arm64: build-macos-arm64 _mkdir-dist
-    @tar -czvf {{dist_dir}}/rtfm-macos-aarch64.tar.gz \
-        -C target/aarch64-apple-darwin/release rtfm
-    @echo "Created: {{dist_dir}}/rtfm-macos-aarch64.tar.gz"
+    @mkdir -p {{dist_dir}}/staging
+    @cp target/aarch64-apple-darwin/release/rtfm {{dist_dir}}/staging/
+    @cp {{release_files}} {{dist_dir}}/staging/
+    @tar -czvf {{dist_dir}}/rtfm-aarch64-apple-darwin.tar.gz -C {{dist_dir}}/staging .
+    @rm -rf {{dist_dir}}/staging
+    @echo "Created: {{dist_dir}}/rtfm-aarch64-apple-darwin.tar.gz"
 
 # Package all cross-compilable targets
 package-all-cross: package-linux-x64 package-linux-x64-musl package-linux-arm64 package-linux-arm64-musl package-windows-x64-gnu

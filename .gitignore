@@ -31,3 +31,8 @@ temp/
 
 # Others
 nul
+
+# Build output
+build/
+dist/
+coverage/

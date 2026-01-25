@@ -103,7 +103,7 @@ Built entirely in **Rust**, RTFM is a single binary with no runtime dependencies
 ### From Source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rtfm.git
+git clone https://github.com/F2077/rtfm.git
 cd rtfm
 cargo build --release
 
