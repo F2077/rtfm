@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 /// 应用配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {
     /// 服务器配置
@@ -101,18 +101,7 @@ pub struct UpdateConfig {
 
 // 默认值实现
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            search: SearchConfig::default(),
-            tui: TuiConfig::default(),
-            storage: StorageConfig::default(),
-            logging: LoggingConfig::default(),
-            update: UpdateConfig::default(),
-        }
-    }
-}
+
 
 impl Default for ServerConfig {
     fn default() -> Self {

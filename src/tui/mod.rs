@@ -3,7 +3,7 @@ pub mod events;
 pub mod ui;
 
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crossterm::{
@@ -121,7 +121,7 @@ pub async fn run(
 }
 
 /// 初始化 TUI 日志系统
-fn init_tui_logging(data_dir: &PathBuf, log_buffer: Option<LogBuffer>, debug_mode: bool, config: &AppConfig) {
+fn init_tui_logging(data_dir: &Path, log_buffer: Option<LogBuffer>, debug_mode: bool, config: &AppConfig) {
   let log_dir = data_dir.join(&config.storage.log_dirname);
   std::fs::create_dir_all(&log_dir).ok();
 

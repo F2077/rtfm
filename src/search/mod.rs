@@ -237,7 +237,7 @@ impl SearchEngine {
         // 转义每个 token 中的特殊字符
         tokens
             .into_iter()
-            .map(|t| Self::escape_special_chars(t))
+            .map(Self::escape_special_chars)
             .collect::<Vec<_>>()
             .join(" ")
     }

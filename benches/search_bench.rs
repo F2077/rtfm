@@ -1,5 +1,4 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use std::path::Path;
 
 // 注意：基准测试需要在有数据的环境下运行
 // 运行: cargo bench

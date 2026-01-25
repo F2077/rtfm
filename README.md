@@ -1,32 +1,112 @@
-# RTFM - Read The F***ing Manual
+<h1 align="center">
+  <br>
+  <code>RTFM</code>
+  <br>
+  <sub>Read The F***ing Manual</sub>
+</h1>
 
-> A CLI cheatsheet tool inspired by [tldr](https://tldr.sh/).
+<p align="center">
+  <b>A cross-platform CLI cheatsheet with TUI, full-text search, and system learning</b>
+</p>
 
-Rust-based cross-platform offline CLI cheatsheet with TUI interface, full-text search, and multi-language support.
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#tech-stack">Tech Stack</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/rust-1.75+-orange?style=flat-square&logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/platform-Windows%20|%20Linux%20|%20macOS-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/license-GPL--3.0-green?style=flat-square" alt="License">
+</p>
+
+---
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│      _________                  "When all else fails..."                     │
+│     /        /|                                                              │
+│    /  RTFM  / |                   READ THE F***ING MANUAL                    │
+│   /________/  |   < Go on, I DARE you to ask again!                          │
+│   |  ~~~~  |  |                                                              │
+│   | MANUAL |  /                   Rust-powered CLI Cheatsheet                │
+│   |________|/                                                                │
+├────────────────────────────────────────────┬─────────────────────────────────┤
+│  Search (/ to focus)                       │ [Tab] Switch  [F1] Help  [q] Quit│
+│ > docker_                                  │                                 │
+├────────────────────────────────────────────┼─────────────────────────────────┤
+│  Commands                                  │  docker                         │
+│ ┌────────────────────────────────────────┐ │ ─────────────────────────────── │
+│ │ ► docker                         [en]  │ │  Manage Docker containers and   │
+│ │   docker-compose                 [en]  │ │  images.                        │
+│ │   docker-build                   [en]  │ │                                 │
+│ │   docker-run                     [en]  │ │  - Start a container:           │
+│ │   docker-ps                      [en]  │ │    docker run {{image}}         │
+│ │   docker-exec                    [en]  │ │                                 │
+│ │   docker-logs                    [zh]  │ │  - List running containers:     │
+│ │   docker-pull                    [zh]  │ │    docker ps                    │
+│ │                                        │ │                                 │
+│ └────────────────────────────────────────┘ │  - Stop a container:            │
+│  8 results | Page 1/1                      │    docker stop {{container}}    │
+├────────────────────────────────────────────┴─────────────────────────────────┤
+│ RTFM v0.1.0 | 3,421 commands | Lang: en | ↑↓/jk: Navigate  Enter: Select     │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Why RTFM?
+
+> *"I've already searched Stack Overflow, read three blog posts, and watched a YouTube video... but I still can't remember how to use `tar`."*
+
+### In the Age of AI Agents
+
+You might ask: *"Why do I need this when I can just ask ChatGPT/Copilot/Claude?"*
+
+Great question. Here's the thing: **AI agents need internet access**. When you're:
+
+- Working in an air-gapped environment (security, compliance, or military)
+- On a plane, train, or remote location with no connectivity
+- Behind a corporate firewall that blocks AI services
+- In a data center with restricted network access
+- Simply experiencing an internet outage
+
+...your AI assistant can't help you. But **RTFM works 100% offline**.
+
+Built entirely in **Rust**, RTFM is a single binary with no runtime dependencies. Copy it to any machine and it just works.
+
+### Key Benefits
+
+- **Instant lookup** - `rtfm tar` gets you what you need
+- **Learn from YOUR system** - Capture `--help` output from any command
+- **Works offline** - All data stored locally, no internet needed
+- **Beautiful TUI** - Not just functional, but actually pleasant to use
+- **Single binary** - Written in Rust, zero runtime dependencies
 
 ## Features
 
-- **Direct Lookup**: `rtfm tar` - instantly show command usage
-- **Learn from System**: `rtfm learn <cmd>` - capture `--help` or `man` pages into the database
-- **TUI Interface**: Modern terminal UI built with ratatui
-- **Full-text Search**: High-performance search powered by Tantivy with Chinese tokenization (jieba)
-- **Multi-language**: Supports Chinese, English, and other languages from tldr-pages
-- **Offline First**: Works completely offline
-- **Cross-platform**: Windows, Linux, macOS
-- **HTTP API**: Optional REST API server mode
+| Feature | Description |
+|---------|-------------|
+| **Direct Lookup** | `rtfm tar` - instantly show command usage |
+| **Learn from System** | `rtfm learn cargo` - capture any `--help` or `man` page |
+| **TUI Interface** | Modern terminal UI with vim-style navigation |
+| **Full-text Search** | Powered by [Tantivy](https://github.com/quickwit-oss/tantivy) with Chinese tokenization |
+| **Multi-language** | English, Chinese, and other languages from tldr-pages |
+| **Offline First** | Everything runs locally - your data, your machine |
+| **HTTP API** | Optional REST API server for integrations |
+| **Backup/Restore** | Export and share your personalized cheatsheets |
 
 ## Installation
 
 ### From Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/YOUR_USERNAME/rtfm.git
 cd rtfm
-
-# Build release
 cargo build --release
 
-# Run
+# Add to PATH or run directly
 ./target/release/rtfm
 ```
 
@@ -37,18 +117,15 @@ cargo build --release
 ## Quick Start
 
 ```bash
-# First, download cheatsheets from tldr-pages
+# 1. Download cheatsheets from tldr-pages
 rtfm update
 
-# Look up a command directly
+# 2. Look up commands directly
 rtfm tar
-rtfm docker
 rtfm git
+rtfm docker
 
-# Look up in specific language
-rtfm -l zh tar
-
-# Start interactive TUI
+# 3. Or launch the interactive TUI
 rtfm
 ```
 
@@ -57,77 +134,44 @@ rtfm
 ### Direct Command Lookup
 
 ```bash
-# Look up command (like tldr)
-rtfm tar
-rtfm docker-compose
-rtfm git-rebase
-
-# Specify language
-rtfm -l zh curl
-rtfm -l en grep
+rtfm tar              # Look up tar
+rtfm docker-compose   # Hyphenated commands work too
+rtfm -l zh curl       # Specify language (zh = Chinese)
 ```
 
-### TUI Mode
+### Interactive TUI
 
 ```bash
-# Start TUI (no arguments)
-rtfm
-
-# Start with debug log panel
-rtfm --debug
+rtfm          # Launch TUI
+rtfm --debug  # With debug log panel
 ```
 
-### Keyboard Shortcuts (TUI)
+**Keyboard Shortcuts:**
 
 | Key | Action |
 |-----|--------|
 | `/` | Focus search box |
-| `↑↓` or `jk` | Navigate |
-| `Enter` | View details |
-| `Tab` | Switch focus |
-| `Esc` | Clear search / Back |
+| `↑↓` or `jk` | Navigate / scroll |
+| `hl` or `←→` | Switch between list and detail |
+| `Enter` | Select / confirm |
+| `Tab` | Cycle focus (Search → List → Detail) |
+| `Esc` | Back / clear search |
 | `PgUp/PgDn` | Page up/down |
+| `Home/End` | Jump to first/last |
 | `F1` | Toggle help |
-| `F12` | Toggle debug log panel |
-| `q` | Quit (not in search) |
-| `Ctrl+Q/C` | Force quit |
+| `F12` | Toggle debug logs |
+| `q` | Quit (when not in search box) |
+| `Ctrl+C/Q` | Force quit |
 
-### HTTP Server Mode
+### Learn Commands from Your System
 
-```bash
-# Start HTTP API server
-rtfm serve --port 3030
-
-# Default: 127.0.0.1:3030
-```
-
-API Endpoints:
-- `GET /api/search?q=<query>&lang=<lang>&limit=<limit>` - Search commands
-- `GET /api/command/<name>?lang=<lang>` - Get command details
-- `GET /api/stats` - Get statistics
-
-### Data Update
+The killer feature - teach RTFM any command installed on your machine:
 
 ```bash
-# Update from tldr-pages
-rtfm update
-
-# Force update (ignore version check)
-rtfm update --force
-
-# Import from local files
-rtfm import --path /path/to/markdown
-```
-
-### Learn Commands from System
-
-You can teach it any command installed on your system:
-
-```bash
-# Learn from --help output
+# Learn from --help
 rtfm learn rustc
 rtfm learn cargo
-rtfm learn docker
+rtfm learn kubectl
 
 # Force re-learn (overwrite existing)
 rtfm learn --force git
@@ -135,98 +179,94 @@ rtfm learn --force git
 # Prefer man page over --help
 rtfm learn --man grep
 
-# Then query the learned command
+# Then query it like any other command
 rtfm rustc
 ```
 
-The `learn` command:
-1. Runs `<command> --help` (or `-h`)
-2. Falls back to `man <command>` if needed
-3. Parses the output to extract description and examples
-4. Saves to local database with full-text indexing
+### Batch Learn
 
-This means you can build a personalized cheatsheet database with ANY command on your system!
-
-### Batch Learn from Man Pages (Linux/macOS) or PowerShell Cmdlets (Windows)
-
-Import entire sections of man pages at once:
+Import entire sections at once:
 
 ```bash
-# Learn all user commands (section 1)
+# Linux/macOS: Learn all man pages (section 1)
 rtfm learn-all
-
-# Learn system administration commands (section 8)
-rtfm learn-all -s 8
 
 # Learn only git-related commands
 rtfm learn-all --prefix git
 
-# Limit to first 100 commands
-rtfm learn-all --limit 100
+# Windows: Learn PowerShell cmdlets
+rtfm learn-all --source powershell
 
-# Skip already learned commands
-rtfm learn-all --skip-existing
+# Limit to first 100 commands
+rtfm learn-all --limit 100 --skip-existing
 ```
 
-Man sections:
-- `1` - User commands (default)
-- `2` - System calls
-- `3` - Library functions
-- `5` - File formats
-- `8` - System administration
-
-### Backup/Restore Data
-
-Share your learned commands across machines:
+### HTTP Server Mode
 
 ```bash
-# Backup all data to a portable archive
+rtfm serve --port 3030
+```
+
+**API Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/search?q=<query>&lang=<lang>&limit=<n>` | Full-text search |
+| GET | `/api/command/{name}?lang=<lang>` | Get command by name |
+| GET | `/api/commands?lang=<lang>` | List all commands |
+| GET | `/api/metadata` | Database metadata & stats |
+| POST | `/api/learn` | Learn a command from system |
+| POST | `/api/learn-all` | Batch learn commands |
+| GET | `/api/backup/info` | Backup information |
+| POST | `/api/import` | Import commands (JSON) |
+| POST | `/api/reset` | Factory reset |
+
+Swagger UI available at: `http://localhost:3030/swagger-ui`
+
+### Data Management
+
+```bash
+# Update from tldr-pages
+rtfm update
+rtfm update --force  # Force update
+
+# Backup your data
 rtfm backup -o my-commands.tar.gz
 
 # Restore on another machine
 rtfm restore my-commands.tar.gz
+rtfm restore --merge backup.tar.gz  # Merge instead of replace
 
-# Merge with existing data (instead of replacing)
-rtfm restore --merge my-commands.tar.gz
+# Factory reset
+rtfm reset
 ```
-
-The backup includes:
-- `data.redb` - Command database
-- `index/` - Full-text search index
-- `config.toml` - Application configuration
-- `metadata.json` - Version and stats
-- `README.md` - Restore instructions
 
 ## Tech Stack
 
-- **TUI**: ratatui + crossterm
-- **CLI**: clap
-- **Search**: tantivy + jieba-rs
-- **Storage**: redb (embedded KV database)
-- **HTTP**: axum
-- **Logging**: tracing + tracing-appender
-
-## Documentation
-
-- [Product Specification](docs/SPEC.md) - Product requirements and architecture
-- [Developer Guide](docs/DEVELOPER_GUIDE.md) - For experienced developers
-- [Rust Beginner Guide](docs/RUST_BEGINNER_GUIDE.md) - For Rust newcomers
+| Component | Technology |
+|-----------|------------|
+| TUI | [ratatui](https://github.com/ratatui/ratatui) + crossterm |
+| CLI | [clap](https://github.com/clap-rs/clap) |
+| Search | [tantivy](https://github.com/quickwit-oss/tantivy) + [jieba-rs](https://github.com/messense/jieba-rs) |
+| Storage | [redb](https://github.com/cberner/redb) (embedded KV database) |
+| HTTP | [axum](https://github.com/tokio-rs/axum) |
+| Logging | [tracing](https://github.com/tokio-rs/tracing) |
 
 ## Data Directory
 
-Data is stored at:
+| Platform | Location |
+|----------|----------|
+| Windows | `%LOCALAPPDATA%\rtfm\` |
+| Linux | `~/.local/share/rtfm/` |
+| macOS | `~/Library/Application Support/rtfm/` |
 
-- **Windows**: `%LOCALAPPDATA%\rtfm\`
-- **Linux**: `~/.local/share/rtfm/`
-- **macOS**: `~/Library/Application Support/rtfm/`
-
-Structure:
 ```
 rtfm/
-├── data.redb        # Command database
-├── index/           # Search index
+├── data.redb     # Command database
+├── index/        # Search index
 └── logs/
-    └── rtfm.log     # Rolling log file
+    └── rtfm.log  # Rolling log file
 ```
 
 ## Project Structure
@@ -234,14 +274,18 @@ rtfm/
 ```
 rtfm/
 ├── src/
-│   ├── main.rs      # Entry point
-│   ├── cli/         # CLI argument parsing
-│   ├── tui/         # TUI interface
+│   ├── main.rs      # Entry point & CLI commands
+│   ├── cli/         # Argument parsing
+│   ├── tui/         # Terminal UI
 │   ├── api/         # HTTP API server
 │   ├── storage/     # Database (redb)
 │   ├── search/      # Search engine (tantivy)
 │   ├── learn/       # Learn from --help/man
 │   └── update/      # Data update module
+├── docs/
+│   ├── SPEC.md              # Product specification
+│   ├── DEVELOPER_GUIDE.md   # For experienced devs
+│   └── RUST_BEGINNER_GUIDE.md
 ├── Cargo.toml
 └── rustfmt.toml
 ```
@@ -249,44 +293,22 @@ rtfm/
 ## Development
 
 ```bash
-cargo run           # Dev mode
-cargo test          # Run tests
-cargo clippy        # Lint
-cargo fmt           # Format
-```
+cargo run             # Dev mode
+cargo test            # Run tests
+cargo clippy          # Lint
+cargo fmt             # Format
 
-## Cross-Platform Build
-
-### Using `cross` (Recommended for cross-compilation)
-
-[cross](https://github.com/cross-rs/cross) uses Docker to provide consistent build environments.
-
-**Prerequisites**: Docker Desktop must be installed and running.
-
-```bash
-# Build for Linux (cross will be auto-installed if needed)
+# Cross-compile for Linux (requires Docker)
 just build-linux
-
-# Build static Linux binary (musl)
 just build-linux-musl
-
-# Or manually install cross first (optional)
-just install-cross
-```
-
-The build output will be in `target/x86_64-unknown-linux-gnu/release/rtfm`.
-
-### Manual Build
-
-```bash
-# Install targets
-rustup target add x86_64-unknown-linux-gnu
-rustup target add x86_64-unknown-linux-musl
-
-# Build (native environment only)
-cargo build --release --target x86_64-unknown-linux-gnu
 ```
 
 ## License
 
-MIT
+GPL-3.0
+
+---
+
+<p align="center">
+  <sub>Built with Rust. Inspired by <a href="https://tldr.sh">tldr</a>. Made for developers who are tired of googling the same commands.</sub>
+</p>

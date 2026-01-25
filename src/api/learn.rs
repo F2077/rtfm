@@ -207,10 +207,10 @@ pub async fn learn_all(
         match learn::get_man_page_with_section(&name, &params.section) {
             Ok((content, source)) => {
                 let cmd = learn::parse_help_content(&name, &content, &source);
-                if state.db.save_command(&cmd).is_ok() {
-                    if search.index_single_command(&cmd).is_ok() {
-                        learned += 1;
-                    }
+                if state.db.save_command(&cmd).is_ok()
+                    && search.index_single_command(&cmd).is_ok()
+                {
+                    learned += 1;
                 }
             }
             Err(_) => {

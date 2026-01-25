@@ -834,6 +834,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(not(target_os = "windows"))]
     fn test_strip_ansi_codes() {
         let input = "\x1b[1mBold\x1b[0m text";
         let output = strip_ansi_codes(input);

@@ -186,7 +186,7 @@ fn parse_tldr_path(path: &str) -> Option<(String, String, String)> {
 /// > Description.
 /// > More information: <url>.
 /// - Example description:
-/// `code`
+///   `code`
 fn parse_tldr_markdown(content: &str, name: String, lang: String, platform: String) -> Option<Command> {
     let parser = Parser::new(content);
 

@@ -49,21 +49,19 @@ pub fn render(frame: &mut Frame, app: &App) {
         Constraint::Length(1),           // 状态栏
       ]
     }
+  } else if app.show_logs {
+    vec![
+      Constraint::Length(3),  // 搜索框
+      Constraint::Min(5),     // 主内容区
+      Constraint::Length(10), // 日志面板
+      Constraint::Length(1),  // 状态栏
+    ]
   } else {
-    if app.show_logs {
-      vec![
-        Constraint::Length(3),  // 搜索框
-        Constraint::Min(5),     // 主内容区
-        Constraint::Length(10), // 日志面板
-        Constraint::Length(1),  // 状态栏
-      ]
-    } else {
-      vec![
-        Constraint::Length(3), // 搜索框
-        Constraint::Min(5),    // 主内容区
-        Constraint::Length(1), // 状态栏
-      ]
-    }
+    vec![
+      Constraint::Length(3), // 搜索框
+      Constraint::Min(5),    // 主内容区
+      Constraint::Length(1), // 状态栏
+    ]
   };
 
   let chunks = Layout::default()
@@ -277,16 +275,16 @@ fn render_detail(frame: &mut Frame, app: &App, area: Rect) {
   let lines: Vec<Line> = content
     .lines()
     .map(|line| {
-      if line.starts_with("# ") {
+      if let Some(header) = line.strip_prefix("# ") {
         Line::from(Span::styled(
-          &line[2..],
+          header,
           Style::default()
             .fg(Color::Cyan)
             .add_modifier(Modifier::BOLD),
         ))
-      } else if line.starts_with("## ") {
+      } else if let Some(header) = line.strip_prefix("## ") {
         Line::from(Span::styled(
-          &line[3..],
+          header,
           Style::default()
             .fg(Color::Green)
             .add_modifier(Modifier::BOLD),

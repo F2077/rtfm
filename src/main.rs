@@ -685,10 +685,10 @@ async fn run_learn_all(
     match result {
       Ok((content, src)) => {
         let cmd = learn::parse_help_content(name, &content, &src);
-        if db.save_command(&cmd).is_ok() {
-          if search.index_single_command(&cmd).is_ok() {
-            learned += 1;
-          }
+        if db.save_command(&cmd).is_ok()
+          && search.index_single_command(&cmd).is_ok()
+        {
+          learned += 1;
         }
       }
       Err(_) => {
