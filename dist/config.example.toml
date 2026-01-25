@@ -1,0 +1,52 @@
+# RTFM Configuration Example
+#
+# Copy this file to one of the following locations:
+#   - ./rtfm.toml (current directory, highest priority)
+#   - <data_dir>/config.toml
+#
+# Data directory locations:
+#   - Windows: %LOCALAPPDATA%\rtfm\
+#   - Linux:   ~/.local/share/rtfm/
+#   - macOS:   ~/Library/Application Support/rtfm/
+#
+# You can also set RTFM_DATA_DIR environment variable to override the data directory.
+#
+# All fields are optional - unspecified values use built-in defaults shown below.
+
+# HTTP Server Configuration
+[server]
+port = 3030                      # Listen port
+bind = "127.0.0.1"               # Bind address (use "0.0.0.0" to allow external access)
+max_upload_size = 104857600      # Maximum file upload size in bytes (100MB)
+
+# Search Configuration
+[search]
+default_limit = 20               # Default number of search results
+max_limit = 100                  # Maximum search results allowed
+index_buffer_size = 50000000     # Search index buffer size in bytes (50MB)
+default_lang = "en"              # Default language for searches
+
+# TUI Configuration
+[tui]
+poll_timeout_ms = 100            # Event polling timeout in milliseconds
+log_buffer_size = 100            # Number of log entries to keep in debug panel
+scroll_step = 1                  # Lines to scroll per step in detail view
+
+# Storage Configuration
+[storage]
+# data_dir = "/custom/path"      # Custom data directory (uncomment to override)
+db_filename = "data.redb"        # Database filename
+index_dirname = "index"          # Search index directory name
+log_dirname = "logs"             # Log directory name
+
+# Logging Configuration
+[logging]
+level = "info"                   # Default log level (trace, debug, info, warn, error)
+debug_level = "debug,tantivy=info"  # Log level when debug mode is enabled
+
+# Update Configuration (for tldr-pages data source)
+[update]
+github_api_url = "https://api.github.com/repos/tldr-pages/tldr/releases/latest"
+download_url_template = "https://github.com/tldr-pages/tldr/archive/refs/tags/{version}.zip"
+fallback_version = "v2.3"        # Fallback version if API is unavailable
+languages = ["en", "zh"]         # Languages to import (empty = all languages)

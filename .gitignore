@@ -55,5 +55,7 @@ nul
 
 # Build output
 build/
-dist/
+dist/*.tar.gz
+dist/*.zip
+dist/staging/
 coverage/
