@@ -5,6 +5,7 @@ mod update;
 
 use std::sync::Arc;
 
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use axum::Router;
 use utoipa::OpenApi;
@@ -20,6 +21,9 @@ use crate::AppState;
         version = "0.1.0",
         description = "Read The F***ing Manual - Offline CLI cheatsheet API",
         license(name = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0.html")
+    ),
+    servers(
+        (url = "/", description = "Current server")
     ),
     paths(
         search::search,
@@ -45,6 +49,7 @@ use crate::AppState;
         data::ErrorResponse,
         data::ImportResponse,
         data::ResetResponse,
+        data::FileUpload,
         update::UpdateInfo,
         update::UpdateProgress,
         update::ErrorResponse,
@@ -73,7 +78,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/update/check", get(update::check_update))
         .route("/update/download", post(update::download_update))
         .route("/import", post(data::import_json))
-        .route("/import/file", post(data::import_file))
+        .route("/import/file", post(data::import_file).layer(DefaultBodyLimit::max(data::MAX_UPLOAD_SIZE)))
         .route("/reset", post(data::reset_data))
         // Learn endpoints
         .route("/learn", post(learn::learn_command))

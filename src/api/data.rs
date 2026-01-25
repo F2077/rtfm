@@ -10,6 +10,9 @@ use crate::storage::{Command, Metadata};
 use crate::update;
 use crate::AppState;
 
+/// Maximum file upload size: 100MB
+pub const MAX_UPLOAD_SIZE: usize = 100 * 1024 * 1024;
+
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ListQuery {
     /// Language filter (default: zh)
@@ -170,11 +173,20 @@ pub async fn import_json(
     }))
 }
 
+/// File upload request body for import
+#[derive(Debug, ToSchema)]
+#[allow(dead_code)]
+pub struct FileUpload {
+    /// File to import (md, zip, tar, tar.gz, tgz)
+    #[schema(value_type = String, format = Binary)]
+    pub file: Vec<u8>,
+}
+
 /// Import commands from file upload (supports .md, .zip, .tar, .tar.gz, .tgz)
 #[utoipa::path(
     post,
     path = "/api/import/file",
-    request_body(content_type = "multipart/form-data", content = String, description = "File to import (md, zip, tar, tar.gz, tgz)"),
+    request_body(content_type = "multipart/form-data", content = FileUpload, description = "File to import in tldr-pages format"),
     responses(
         (status = 200, description = "Import successful", body = ImportResponse),
         (status = 400, description = "Bad request", body = ErrorResponse),
