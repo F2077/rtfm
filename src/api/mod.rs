@@ -26,7 +26,8 @@ use crate::AppState;
         data::get_command,
         data::list_commands,
         data::get_metadata,
-        data::import_files,
+        data::import_json,
+        data::import_file,
         data::reset_data,
         update::check_update,
         update::download_update,
@@ -71,7 +72,8 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/metadata", get(data::get_metadata))
         .route("/update/check", get(update::check_update))
         .route("/update/download", post(update::download_update))
-        .route("/import", post(data::import_files))
+        .route("/import", post(data::import_json))
+        .route("/import/file", post(data::import_file))
         .route("/reset", post(data::reset_data))
         // Learn endpoints
         .route("/learn", post(learn::learn_command))

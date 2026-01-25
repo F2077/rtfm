@@ -342,39 +342,159 @@ async fn run_import(path: &str, config: &AppConfig) -> anyhow::Result<()> {
     anyhow::bail!("Path does not exist: {:?}", path);
   }
 
-  let mut commands = Vec::new();
+  let (commands, _total_files, skipped) = import_from_path(&path)?;
 
-  if path.is_file() {
-    // 单个文件
-    let content = std::fs::read_to_string(&path)?;
-    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
-    if let Some(cmd) = update::parse_local_markdown(&content, filename) {
-      commands.push(cmd);
-    }
-  } else {
-    // 目录
-    for entry in walkdir(&path)? {
+  if commands.is_empty() {
+    println!("No valid Markdown files found.");
+    println!();
+    println!("Files must follow the tldr-pages format:");
+    println!("  # command-name");
+    println!("  > Brief description.");
+    println!("  - Example description:");
+    println!("  `command --option {{{{arg}}}}`");
+    println!();
+    println!("See: https://github.com/tldr-pages/tldr/blob/main/contributing-guides/style-guide.md");
+    return Ok(());
+  }
+
+  println!("Importing {} commands...", commands.len());
+  if skipped > 0 {
+    println!("  (skipped {} files without valid tldr format)", skipped);
+  }
+
+  db.save_commands(&commands)?;
+  search.index_commands(&commands)?;
+
+  println!("Import complete! {} commands imported.", commands.len());
+  Ok(())
+}
+
+/// Import commands from a path (file, directory, or archive)
+/// Returns (commands, total_files_scanned, skipped_count)
+fn import_from_path(path: &PathBuf) -> anyhow::Result<(Vec<storage::Command>, usize, usize)> {
+  use std::io::Read;
+
+  let mut commands = Vec::new();
+  let mut total_files = 0;
+  let mut skipped = 0;
+
+  if path.is_dir() {
+    // Directory of markdown files
+    for entry in walkdir(path)? {
       if entry.extension().map(|e| e == "md").unwrap_or(false) {
+        total_files += 1;
         let content = std::fs::read_to_string(&entry)?;
         let filename = entry.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
         if let Some(cmd) = update::parse_local_markdown(&content, filename) {
           commands.push(cmd);
+        } else {
+          skipped += 1;
+        }
+      }
+    }
+  } else if path.is_file() {
+    // Detect file type by extension
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+    match ext.to_lowercase().as_str() {
+      "md" => {
+        // Single markdown file
+        total_files += 1;
+        let content = std::fs::read_to_string(path)?;
+        if let Some(cmd) = update::parse_local_markdown(&content, filename) {
+          commands.push(cmd);
+        } else {
+          skipped += 1;
+        }
+      }
+      "zip" => {
+        // ZIP archive
+        let file = std::fs::File::open(path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        for i in 0..archive.len() {
+          let mut entry = archive.by_index(i)?;
+          let name = entry.name().to_string();
+          if name.ends_with(".md") && !entry.is_dir() {
+            total_files += 1;
+            let mut content = String::new();
+            entry.read_to_string(&mut content)?;
+            let md_name = std::path::Path::new(&name)
+              .file_name()
+              .and_then(|n| n.to_str())
+              .unwrap_or("unknown");
+            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+              commands.push(cmd);
+            } else {
+              skipped += 1;
+            }
+          }
+        }
+      }
+      "gz" | "tgz" => {
+        // tar.gz or .tgz archive
+        let file = std::fs::File::open(path)?;
+        let decoder = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(decoder);
+        for entry in archive.entries()? {
+          let mut entry = entry?;
+          let path = entry.path()?.to_path_buf();
+          if path.extension().map(|e| e == "md").unwrap_or(false) {
+            total_files += 1;
+            let mut content = String::new();
+            entry.read_to_string(&mut content)?;
+            let md_name = path
+              .file_name()
+              .and_then(|n| n.to_str())
+              .unwrap_or("unknown");
+            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+              commands.push(cmd);
+            } else {
+              skipped += 1;
+            }
+          }
+        }
+      }
+      "tar" => {
+        // Plain tar archive
+        let file = std::fs::File::open(path)?;
+        let mut archive = tar::Archive::new(file);
+        for entry in archive.entries()? {
+          let mut entry = entry?;
+          let path = entry.path()?.to_path_buf();
+          if path.extension().map(|e| e == "md").unwrap_or(false) {
+            total_files += 1;
+            let mut content = String::new();
+            entry.read_to_string(&mut content)?;
+            let md_name = path
+              .file_name()
+              .and_then(|n| n.to_str())
+              .unwrap_or("unknown");
+            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+              commands.push(cmd);
+            } else {
+              skipped += 1;
+            }
+          }
+        }
+      }
+      _ => {
+        // Try to read as markdown anyway
+        total_files += 1;
+        if let Ok(content) = std::fs::read_to_string(path) {
+          if let Some(cmd) = update::parse_local_markdown(&content, filename) {
+            commands.push(cmd);
+          } else {
+            skipped += 1;
+          }
+        } else {
+          skipped += 1;
         }
       }
     }
   }
 
-  if commands.is_empty() {
-    println!("No valid Markdown files found");
-    return Ok(());
-  }
-
-  println!("Importing {} commands...", commands.len());
-  db.save_commands(&commands)?;
-  search.index_commands(&commands)?;
-
-  println!("Import complete!");
-  Ok(())
+  Ok((commands, total_files, skipped))
 }
 
 /// 简单的目录遍历

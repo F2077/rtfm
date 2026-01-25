@@ -222,6 +222,7 @@ rtfm serve --port 3030
 | POST | `/api/learn-all` | Batch learn commands |
 | GET | `/api/backup/info` | Backup information |
 | POST | `/api/import` | Import commands (JSON) |
+| POST | `/api/import/file` | Import file (md, zip, tar, tar.gz) |
 | POST | `/api/reset` | Factory reset |
 
 Swagger UI available at: `http://localhost:3030/swagger-ui`
@@ -233,6 +234,13 @@ Swagger UI available at: `http://localhost:3030/swagger-ui`
 rtfm update
 rtfm update --force  # Force update
 
+# Import custom cheatsheets (auto-detects format)
+rtfm import ./my-commands/        # Directory of .md files
+rtfm import ./docker.md           # Single markdown file
+rtfm import ./commands.zip        # ZIP archive
+rtfm import ./commands.tar.gz     # TAR.GZ archive
+rtfm import ./commands.tar        # TAR archive
+
 # Backup your data
 rtfm backup -o my-commands.tar.gz
 
@@ -243,6 +251,20 @@ rtfm restore --merge backup.tar.gz  # Merge instead of replace
 # Factory reset
 rtfm reset
 ```
+
+**Import Format:** Files must follow the [tldr-pages format](https://github.com/tldr-pages/tldr/blob/main/contributing-guides/style-guide.md):
+
+```markdown
+# command-name
+
+> Brief description of the command.
+
+- Example description:
+
+`command --option {{arg}}`
+```
+
+Files without valid description or examples will be skipped.
 
 ## Tech Stack
 

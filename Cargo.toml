@@ -22,7 +22,7 @@ crossterm = "0.28"
 clap = { version = "4.5", features = ["derive"] }
 
 # Web 框架 (可选 HTTP 服务模式)
-axum = "0.7"
+axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors"] }
 

@@ -293,7 +293,12 @@ fn parse_tldr_markdown(content: &str, name: String, lang: String, platform: Stri
         }
     }
 
-    // 如果没有描述，使用命令名
+    // Validate: must have description or at least one example
+    if description.is_empty() && examples.is_empty() {
+        return None;
+    }
+
+    // If no description, use command name
     if description.is_empty() {
         description = name.clone();
     }

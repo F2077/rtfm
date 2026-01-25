@@ -44,9 +44,21 @@ pub enum Commands {
     force: bool,
   },
 
-  /// Import local Markdown files
+  /// Import Markdown files in tldr-pages format (.md, .zip, .tar, .tar.gz, .tgz, or directory)
+  #[command(after_long_help = r#"FORMAT:
+  Files must follow the tldr-pages Markdown format:
+  
+    # command-name
+    > Brief description of the command.
+    
+    - Example description:
+    
+    `command --option {{arg}}`
+    
+  Files without valid description or examples will be skipped.
+  See: https://github.com/tldr-pages/tldr/blob/main/contributing-guides/style-guide.md"#)]
   Import {
-    /// File or directory path
+    /// File or directory path (auto-detects archive format)
     path: String,
   },
 

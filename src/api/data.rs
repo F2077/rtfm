@@ -1,11 +1,13 @@
+use std::io::Read;
 use std::sync::Arc;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Multipart, Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::storage::{Command, Metadata};
+use crate::update;
 use crate::AppState;
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -30,6 +32,8 @@ pub struct ErrorResponse {
 pub struct ImportResponse {
     /// Number of commands imported
     pub imported: usize,
+    /// Number of files skipped (invalid format)
+    pub skipped: usize,
     /// Status message
     pub message: String,
 }
@@ -129,7 +133,7 @@ pub async fn get_metadata(
     ),
     tag = "Data"
 )]
-pub async fn import_files(
+pub async fn import_json(
     State(state): State<Arc<AppState>>,
     Json(commands): Json<Vec<Command>>,
 ) -> Result<Json<ImportResponse>, Json<ErrorResponse>> {
@@ -161,8 +165,182 @@ pub async fn import_files(
 
     Ok(Json(ImportResponse {
         imported: count,
+        skipped: 0,
         message: format!("Successfully imported {} commands", count),
     }))
+}
+
+/// Import commands from file upload (supports .md, .zip, .tar, .tar.gz, .tgz)
+#[utoipa::path(
+    post,
+    path = "/api/import/file",
+    request_body(content_type = "multipart/form-data", content = String, description = "File to import (md, zip, tar, tar.gz, tgz)"),
+    responses(
+        (status = 200, description = "Import successful", body = ImportResponse),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 500, description = "Import failed", body = ErrorResponse)
+    ),
+    tag = "Data"
+)]
+pub async fn import_file(
+    State(state): State<Arc<AppState>>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResponse>, Json<ErrorResponse>> {
+    let mut commands = Vec::new();
+    let mut total_skipped = 0;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let filename = field.file_name().unwrap_or("unknown").to_string();
+        let data = field.bytes().await.map_err(|e| Json(ErrorResponse {
+            error: format!("Failed to read file: {}", e),
+        }))?;
+
+        // Parse based on file extension
+        let (parsed, skipped) = parse_file_data(&filename, &data).map_err(|e| Json(ErrorResponse {
+            error: e.to_string(),
+        }))?;
+
+        commands.extend(parsed);
+        total_skipped += skipped;
+    }
+
+    if commands.is_empty() {
+        return Err(Json(ErrorResponse {
+            error: "No valid Markdown files found. Files must follow tldr-pages format with description or examples.".to_string(),
+        }));
+    }
+
+    let count = commands.len();
+
+    // 保存到数据库
+    if let Err(e) = state.db.save_commands(&commands) {
+        return Err(Json(ErrorResponse {
+            error: e.to_string(),
+        }));
+    }
+
+    // 重建索引
+    let mut search = state.search.write().await;
+    if let Err(e) = search.index_commands(&commands) {
+        return Err(Json(ErrorResponse {
+            error: e.to_string(),
+        }));
+    }
+
+    // 更新元数据
+    let meta = Metadata {
+        version: chrono::Utc::now().format("%Y.%m.%d").to_string(),
+        command_count: state.db.count_commands().unwrap_or(0),
+        last_update: chrono::Utc::now().to_rfc3339(),
+        languages: vec!["zh".to_string(), "en".to_string()],
+    };
+    let _ = state.db.save_metadata(&meta);
+
+    Ok(Json(ImportResponse {
+        imported: count,
+        skipped: total_skipped,
+        message: format!("Successfully imported {} commands", count),
+    }))
+}
+
+/// Parse file data based on filename extension
+/// Returns (commands, skipped_count)
+fn parse_file_data(filename: &str, data: &[u8]) -> anyhow::Result<(Vec<Command>, usize)> {
+    use std::io::Cursor;
+
+    let mut commands = Vec::new();
+    let mut skipped = 0;
+    let ext = std::path::Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match ext.as_str() {
+        "md" => {
+            let content = String::from_utf8_lossy(data);
+            if let Some(cmd) = update::parse_local_markdown(&content, filename) {
+                commands.push(cmd);
+            } else {
+                skipped += 1;
+            }
+        }
+        "zip" => {
+            let cursor = Cursor::new(data);
+            let mut archive = zip::ZipArchive::new(cursor)?;
+            for i in 0..archive.len() {
+                let mut entry = archive.by_index(i)?;
+                let name = entry.name().to_string();
+                if name.ends_with(".md") && !entry.is_dir() {
+                    let mut content = String::new();
+                    entry.read_to_string(&mut content)?;
+                    let md_name = std::path::Path::new(&name)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown");
+                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+                        commands.push(cmd);
+                    } else {
+                        skipped += 1;
+                    }
+                }
+            }
+        }
+        "gz" | "tgz" => {
+            let cursor = Cursor::new(data);
+            let decoder = flate2::read::GzDecoder::new(cursor);
+            let mut archive = tar::Archive::new(decoder);
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let path = entry.path()?.to_path_buf();
+                if path.extension().map(|e| e == "md").unwrap_or(false) {
+                    let mut content = String::new();
+                    entry.read_to_string(&mut content)?;
+                    let md_name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown");
+                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+                        commands.push(cmd);
+                    } else {
+                        skipped += 1;
+                    }
+                }
+            }
+        }
+        "tar" => {
+            let cursor = Cursor::new(data);
+            let mut archive = tar::Archive::new(cursor);
+            for entry in archive.entries()? {
+                let mut entry = entry?;
+                let path = entry.path()?.to_path_buf();
+                if path.extension().map(|e| e == "md").unwrap_or(false) {
+                    let mut content = String::new();
+                    entry.read_to_string(&mut content)?;
+                    let md_name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown");
+                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
+                        commands.push(cmd);
+                    } else {
+                        skipped += 1;
+                    }
+                }
+            }
+        }
+        _ => {
+            // Try as markdown
+            let content = String::from_utf8_lossy(data);
+            if let Some(cmd) = update::parse_local_markdown(&content, filename) {
+                commands.push(cmd);
+            } else {
+                skipped += 1;
+            }
+        }
+    }
+
+    Ok((commands, skipped))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
