@@ -36,7 +36,7 @@
 │   | MANUAL |  /                   Rust-powered CLI Cheatsheet                │
 │   |________|/                                                                │
 ├────────────────────────────────────────────┬─────────────────────────────────┤
-│  Search (/ to focus)                       │ [Tab] Switch  [F1] Help  [q] Quit│
+│  Search (/ to focus)                       │ [Tab] Switch [^H] Help [Esc] Quit│
 │ > docker_                                  │                                 │
 ├────────────────────────────────────────────┼─────────────────────────────────┤
 │  Commands                                  │  docker                         │
@@ -156,12 +156,12 @@ rtfm --debug  # With debug log panel
 | `hl` or `←→` | Switch between list and detail |
 | `Enter` | Select / confirm |
 | `Tab` | Cycle focus (Search → List → Detail) |
-| `Esc` | Back / clear search |
+| `Esc` | Back / clear search / quit |
 | `PgUp/PgDn` | Page up/down |
 | `Home/End` | Jump to first/last |
-| `F1` | Toggle help |
-| `F12` | Toggle debug logs |
-| `q` | Quit (when not in search box) |
+| `?` | Toggle help (when not in search) |
+| `Ctrl+H` | Toggle help (works everywhere) |
+| `Ctrl+L` | Toggle debug logs (requires --debug) |
 | `Ctrl+C/Q` | Force quit |
 
 ### Learn Commands from Your System

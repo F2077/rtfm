@@ -148,7 +148,7 @@ fn render_search_bar(frame: &mut Frame, app: &App, area: Rect) {
   }
 
   // 快捷键提示
-  let hints = Paragraph::new(" [Tab] Switch  [F1] Help  [q] Quit")
+  let hints = Paragraph::new(" [Tab] Switch  [Ctrl+H] Help  [Esc] Back/Quit")
     .style(Style::default().fg(Color::DarkGray))
     .alignment(Alignment::Right);
   
@@ -316,7 +316,7 @@ fn render_log_panel(frame: &mut Frame, app: &App, area: Rect) {
   let block = Block::default()
     .borders(Borders::ALL)
     .border_style(Style::default().fg(Color::Magenta))
-    .title(" Debug Logs [F12 close] ");
+    .title(" Debug Logs [Ctrl+L close] ");
 
   let logs = app.get_logs();
   let inner_height = area.height.saturating_sub(2) as usize;
@@ -403,23 +403,19 @@ fn render_help_popup(frame: &mut Frame) {
     ]),
     Line::from(vec![
       Span::styled("  Esc      ", Style::default().fg(Color::Yellow)),
-      Span::raw("Clear / Back"),
+      Span::raw("Clear / Back / Quit"),
     ]),
     Line::from(vec![
       Span::styled("  PgUp/Dn  ", Style::default().fg(Color::Yellow)),
       Span::raw("Page up/down"),
     ]),
     Line::from(vec![
-      Span::styled("  F1       ", Style::default().fg(Color::Yellow)),
-      Span::raw("Toggle help"),
+      Span::styled("  Ctrl+H   ", Style::default().fg(Color::Yellow)),
+      Span::raw("Toggle help (or ? outside search)"),
     ]),
     Line::from(vec![
-      Span::styled("  F12      ", Style::default().fg(Color::Yellow)),
-      Span::raw("Toggle debug logs"),
-    ]),
-    Line::from(vec![
-      Span::styled("  q        ", Style::default().fg(Color::Yellow)),
-      Span::raw("Quit (not in search)"),
+      Span::styled("  Ctrl+L   ", Style::default().fg(Color::Yellow)),
+      Span::raw("Toggle debug logs (requires --debug)"),
     ]),
     Line::from(vec![
       Span::styled("  Ctrl+Q/C ", Style::default().fg(Color::Yellow)),

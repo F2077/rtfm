@@ -30,17 +30,18 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) -> EventResult {
     KeyCode::Char('c') | KeyCode::Char('q') if key.modifiers.contains(KeyModifiers::CONTROL) => {
       return EventResult::Quit;
     }
-    // 非搜索焦点时 q 退出
-    KeyCode::Char('q') if app.focus != Focus::Search => {
-      return EventResult::Quit;
-    }
-    // F1 切换帮助
-    KeyCode::F(1) => {
+    // Ctrl+H 切换帮助（全局可用）
+    KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
       app.show_help = !app.show_help;
       return EventResult::Continue;
     }
-    // F12 切换日志面板（调试模式）
-    KeyCode::F(12) => {
+    // ? 切换帮助（非搜索焦点时）
+    KeyCode::Char('?') if app.focus != Focus::Search => {
+      app.show_help = !app.show_help;
+      return EventResult::Continue;
+    }
+    // Ctrl+L 切换日志面板（调试模式）
+    KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
       app.toggle_logs();
       return EventResult::Continue;
     }
@@ -54,7 +55,7 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) -> EventResult {
 
   // 帮助模式下只响应关闭
   if app.show_help {
-    if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('q')) {
+    if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('?')) {
       app.show_help = false;
     }
     return EventResult::Continue;
