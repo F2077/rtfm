@@ -322,7 +322,11 @@ async fn run_update(force: bool, config: &AppConfig) -> anyhow::Result<()> {
 
   // 解析
   println!("Parsing cheatsheets...");
-  let commands = update::parse_tldr_archive(&bytes)?;
+  let languages = &config.update.languages;
+  if !languages.is_empty() {
+    println!("Filtering languages: {:?}", languages);
+  }
+  let commands = update::parse_tldr_archive(&bytes, languages)?;
   println!("Parsed {} commands", commands.len());
 
   // 保存
@@ -339,7 +343,11 @@ async fn run_update(force: bool, config: &AppConfig) -> anyhow::Result<()> {
     version: update_info.tag_name.clone(),
     command_count: commands.len(),
     last_update: chrono::Utc::now().to_rfc3339(),
-    languages: vec!["zh".to_string(), "en".to_string()],
+    languages: if languages.is_empty() {
+      vec!["en".to_string(), "zh".to_string()]
+    } else {
+      languages.clone()
+    },
   };
   db.save_metadata(&metadata)?;
 
@@ -365,7 +373,12 @@ async fn run_import(path: &str, config: &AppConfig) -> anyhow::Result<()> {
     anyhow::bail!("Path does not exist: {:?}", path);
   }
 
-  let (commands, _total_files, skipped) = import_from_path(&path)?;
+  let languages = &config.update.languages;
+  if !languages.is_empty() {
+    println!("Filtering languages: {:?}", languages);
+  }
+
+  let (commands, _total_files, skipped) = import_from_path(&path, languages)?;
 
   if commands.is_empty() {
     println!("No valid Markdown files found.");
@@ -394,9 +407,7 @@ async fn run_import(path: &str, config: &AppConfig) -> anyhow::Result<()> {
 
 /// Import commands from a path (file, directory, or archive)
 /// Returns (commands, total_files_scanned, skipped_count)
-fn import_from_path(path: &PathBuf) -> anyhow::Result<(Vec<storage::Command>, usize, usize)> {
-  use std::io::Read;
-
+fn import_from_path(path: &PathBuf, languages: &[String]) -> anyhow::Result<(Vec<storage::Command>, usize, usize)> {
   let mut commands = Vec::new();
   let mut total_files = 0;
   let mut skipped = 0;
@@ -422,7 +433,7 @@ fn import_from_path(path: &PathBuf) -> anyhow::Result<(Vec<storage::Command>, us
 
     match ext.to_lowercase().as_str() {
       "md" => {
-        // Single markdown file
+        // Single markdown file - no language filtering
         total_files += 1;
         let content = std::fs::read_to_string(path)?;
         if let Some(cmd) = update::parse_local_markdown(&content, filename) {
@@ -431,73 +442,16 @@ fn import_from_path(path: &PathBuf) -> anyhow::Result<(Vec<storage::Command>, us
           skipped += 1;
         }
       }
-      "zip" => {
-        // ZIP archive
-        let file = std::fs::File::open(path)?;
-        let mut archive = zip::ZipArchive::new(file)?;
-        for i in 0..archive.len() {
-          let mut entry = archive.by_index(i)?;
-          let name = entry.name().to_string();
-          if name.ends_with(".md") && !entry.is_dir() {
-            total_files += 1;
-            let mut content = String::new();
-            entry.read_to_string(&mut content)?;
-            let md_name = std::path::Path::new(&name)
-              .file_name()
-              .and_then(|n| n.to_str())
-              .unwrap_or("unknown");
-            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-              commands.push(cmd);
-            } else {
-              skipped += 1;
-            }
+      "zip" | "gz" | "tgz" | "tar" => {
+        // Archive file - use parse_tldr_archive with language filtering
+        let data = std::fs::read(path)?;
+        match update::parse_tldr_archive(&data, languages) {
+          Ok(cmds) => {
+            total_files = cmds.len();
+            commands = cmds;
           }
-        }
-      }
-      "gz" | "tgz" => {
-        // tar.gz or .tgz archive
-        let file = std::fs::File::open(path)?;
-        let decoder = flate2::read::GzDecoder::new(file);
-        let mut archive = tar::Archive::new(decoder);
-        for entry in archive.entries()? {
-          let mut entry = entry?;
-          let path = entry.path()?.to_path_buf();
-          if path.extension().map(|e| e == "md").unwrap_or(false) {
-            total_files += 1;
-            let mut content = String::new();
-            entry.read_to_string(&mut content)?;
-            let md_name = path
-              .file_name()
-              .and_then(|n| n.to_str())
-              .unwrap_or("unknown");
-            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-              commands.push(cmd);
-            } else {
-              skipped += 1;
-            }
-          }
-        }
-      }
-      "tar" => {
-        // Plain tar archive
-        let file = std::fs::File::open(path)?;
-        let mut archive = tar::Archive::new(file);
-        for entry in archive.entries()? {
-          let mut entry = entry?;
-          let path = entry.path()?.to_path_buf();
-          if path.extension().map(|e| e == "md").unwrap_or(false) {
-            total_files += 1;
-            let mut content = String::new();
-            entry.read_to_string(&mut content)?;
-            let md_name = path
-              .file_name()
-              .and_then(|n| n.to_str())
-              .unwrap_or("unknown");
-            if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-              commands.push(cmd);
-            } else {
-              skipped += 1;
-            }
+          Err(e) => {
+            anyhow::bail!("Failed to parse archive: {}", e);
           }
         }
       }

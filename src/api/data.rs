@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::sync::Arc;
 
 use axum::extract::{Multipart, Path, Query, State};
@@ -159,7 +158,7 @@ pub async fn import_json(
         version: chrono::Utc::now().format("%Y.%m.%d").to_string(),
         command_count: state.db.count_commands().unwrap_or(0),
         last_update: chrono::Utc::now().to_rfc3339(),
-        languages: vec!["zh".to_string(), "en".to_string()],
+        languages: state.config.update.languages.clone(),
     };
     let _ = state.db.save_metadata(&meta);
 
@@ -197,6 +196,7 @@ pub async fn import_file(
 ) -> Result<Json<ImportResponse>, Json<ErrorResponse>> {
     let mut commands = Vec::new();
     let mut total_skipped = 0;
+    let languages = &state.config.update.languages;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let filename = field.file_name().unwrap_or("unknown").to_string();
@@ -205,7 +205,7 @@ pub async fn import_file(
         }))?;
 
         // Parse based on file extension
-        let (parsed, skipped) = parse_file_data(&filename, &data).map_err(|e| Json(ErrorResponse {
+        let (parsed, skipped) = parse_file_data(&filename, &data, languages).map_err(|e| Json(ErrorResponse {
             error: e.to_string(),
         }))?;
 
@@ -241,7 +241,11 @@ pub async fn import_file(
         version: chrono::Utc::now().format("%Y.%m.%d").to_string(),
         command_count: state.db.count_commands().unwrap_or(0),
         last_update: chrono::Utc::now().to_rfc3339(),
-        languages: vec!["zh".to_string(), "en".to_string()],
+        languages: if languages.is_empty() {
+            vec!["en".to_string(), "zh".to_string()]
+        } else {
+            languages.clone()
+        },
     };
     let _ = state.db.save_metadata(&meta);
 
@@ -254,11 +258,7 @@ pub async fn import_file(
 
 /// Parse file data based on filename extension
 /// Returns (commands, skipped_count)
-fn parse_file_data(filename: &str, data: &[u8]) -> anyhow::Result<(Vec<Command>, usize)> {
-    use std::io::Cursor;
-
-    let mut commands = Vec::new();
-    let mut skipped = 0;
+fn parse_file_data(filename: &str, data: &[u8], languages: &[String]) -> anyhow::Result<(Vec<Command>, usize)> {
     let ext = std::path::Path::new(filename)
         .extension()
         .and_then(|e| e.to_str())
@@ -267,89 +267,31 @@ fn parse_file_data(filename: &str, data: &[u8]) -> anyhow::Result<(Vec<Command>,
 
     match ext.as_str() {
         "md" => {
+            // Single markdown file - no language filtering (use as-is)
             let content = String::from_utf8_lossy(data);
             if let Some(cmd) = update::parse_local_markdown(&content, filename) {
-                commands.push(cmd);
+                Ok((vec![cmd], 0))
             } else {
-                skipped += 1;
+                Ok((vec![], 1))
             }
         }
-        "zip" => {
-            let cursor = Cursor::new(data);
-            let mut archive = zip::ZipArchive::new(cursor)?;
-            for i in 0..archive.len() {
-                let mut entry = archive.by_index(i)?;
-                let name = entry.name().to_string();
-                if name.ends_with(".md") && !entry.is_dir() {
-                    let mut content = String::new();
-                    entry.read_to_string(&mut content)?;
-                    let md_name = std::path::Path::new(&name)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown");
-                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-                        commands.push(cmd);
-                    } else {
-                        skipped += 1;
-                    }
-                }
-            }
-        }
-        "gz" | "tgz" => {
-            let cursor = Cursor::new(data);
-            let decoder = flate2::read::GzDecoder::new(cursor);
-            let mut archive = tar::Archive::new(decoder);
-            for entry in archive.entries()? {
-                let mut entry = entry?;
-                let path = entry.path()?.to_path_buf();
-                if path.extension().map(|e| e == "md").unwrap_or(false) {
-                    let mut content = String::new();
-                    entry.read_to_string(&mut content)?;
-                    let md_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown");
-                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-                        commands.push(cmd);
-                    } else {
-                        skipped += 1;
-                    }
-                }
-            }
-        }
-        "tar" => {
-            let cursor = Cursor::new(data);
-            let mut archive = tar::Archive::new(cursor);
-            for entry in archive.entries()? {
-                let mut entry = entry?;
-                let path = entry.path()?.to_path_buf();
-                if path.extension().map(|e| e == "md").unwrap_or(false) {
-                    let mut content = String::new();
-                    entry.read_to_string(&mut content)?;
-                    let md_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown");
-                    if let Some(cmd) = update::parse_local_markdown(&content, md_name) {
-                        commands.push(cmd);
-                    } else {
-                        skipped += 1;
-                    }
-                }
+        "zip" | "gz" | "tgz" | "tar" => {
+            // Archive file - use parse_tldr_archive with language filtering
+            match update::parse_tldr_archive(data, languages) {
+                Ok(commands) => Ok((commands, 0)),
+                Err(e) => Err(anyhow::anyhow!("Failed to parse archive: {}", e)),
             }
         }
         _ => {
             // Try as markdown
             let content = String::from_utf8_lossy(data);
             if let Some(cmd) = update::parse_local_markdown(&content, filename) {
-                commands.push(cmd);
+                Ok((vec![cmd], 0))
             } else {
-                skipped += 1;
+                Ok((vec![], 1))
             }
         }
     }
-
-    Ok((commands, skipped))
 }
 
 #[derive(Debug, Serialize, ToSchema)]

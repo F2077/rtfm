@@ -99,6 +99,8 @@ pub struct UpdateConfig {
     pub user_agent: String,
     /// 备用版本号（API 不可用时使用）
     pub fallback_version: String,
+    /// 允许导入的语言列表（空表示全部）
+    pub languages: Vec<String>,
 }
 
 // 默认值实现
@@ -163,6 +165,7 @@ impl Default for UpdateConfig {
             download_url_template: "https://github.com/tldr-pages/tldr/archive/refs/tags/{version}.zip".to_string(),
             user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36".to_string(),
             fallback_version: "v2.3".to_string(),
+            languages: vec!["en".to_string(), "zh".to_string()],
         }
     }
 }

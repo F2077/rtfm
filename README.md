@@ -348,6 +348,7 @@ debug_level = "debug,tantivy=info"
 github_api_url = "https://api.github.com/repos/tldr-pages/tldr/releases/latest"
 download_url_template = "https://github.com/tldr-pages/tldr/archive/refs/tags/{version}.zip"
 fallback_version = "v2.3"
+languages = ["en", "zh"]  # Languages to import (empty = all)
 ```
 
 All fields are optional - unspecified values use built-in defaults.

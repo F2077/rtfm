@@ -66,21 +66,22 @@ pub enum UpdateError {
 }
 
 /// 解析 tldr-pages 压缩包
-pub fn parse_tldr_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
+/// languages: 允许的语言列表，空表示全部
+pub fn parse_tldr_archive(data: &[u8], languages: &[String]) -> Result<Vec<Command>, UpdateError> {
     // 尝试作为 ZIP 解析
-    if let Ok(commands) = parse_zip_archive(data) {
+    if let Ok(commands) = parse_zip_archive(data, languages) {
         return Ok(commands);
     }
 
     // 尝试作为 tar.gz 解析
-    if let Ok(commands) = parse_targz_archive(data) {
+    if let Ok(commands) = parse_targz_archive(data, languages) {
         return Ok(commands);
     }
 
     Err(UpdateError::Parse("Unrecognized archive format".to_string()))
 }
 
-fn parse_zip_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
+fn parse_zip_archive(data: &[u8], languages: &[String]) -> Result<Vec<Command>, UpdateError> {
     let cursor = Cursor::new(data);
     let mut archive = ZipArchive::new(cursor)?;
 
@@ -101,6 +102,11 @@ fn parse_zip_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
             None => continue,
         };
 
+        // Filter by language if specified
+        if !languages.is_empty() && !languages.contains(&lang) {
+            continue;
+        }
+
         // 读取内容
         let mut content = String::new();
         file.read_to_string(&mut content)?;
@@ -114,7 +120,7 @@ fn parse_zip_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
     Ok(commands)
 }
 
-fn parse_targz_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
+fn parse_targz_archive(data: &[u8], languages: &[String]) -> Result<Vec<Command>, UpdateError> {
     let cursor = Cursor::new(data);
     let decoder = GzDecoder::new(cursor);
     let mut archive = Archive::new(decoder);
@@ -135,6 +141,11 @@ fn parse_targz_archive(data: &[u8]) -> Result<Vec<Command>, UpdateError> {
             Some(info) => info,
             None => continue,
         };
+
+        // Filter by language if specified
+        if !languages.is_empty() && !languages.contains(&lang) {
+            continue;
+        }
 
         // 读取内容
         let mut content = String::new();

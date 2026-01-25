@@ -179,7 +179,8 @@ pub async fn download_update(
     tracing::info!("Download complete, size: {} bytes", bytes.len());
 
     // 解析并导入数据
-    let commands = crate::update::parse_tldr_archive(&bytes).map_err(|e| {
+    let languages = &state.config.update.languages;
+    let commands = crate::update::parse_tldr_archive(&bytes, languages).map_err(|e| {
         Json(ErrorResponse {
             error: e.to_string(),
         })
@@ -207,7 +208,11 @@ pub async fn download_update(
         version: update_info.latest_version,
         command_count: commands.len(),
         last_update: chrono::Utc::now().to_rfc3339(),
-        languages: vec!["zh".to_string(), "en".to_string()],
+        languages: if languages.is_empty() {
+            vec!["en".to_string(), "zh".to_string()]
+        } else {
+            languages.clone()
+        },
     };
     let _ = state.db.save_metadata(&meta);
 
