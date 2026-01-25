@@ -37,8 +37,8 @@ redb = "2.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# HTTP 客户端
-reqwest = { version = "0.12", features = ["json", "stream"] }
+# HTTP 客户端 (rustls for cross-compilation, no OpenSSL dependency)
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 
 # Markdown 解析
 pulldown-cmark = "0.10"
