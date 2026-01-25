@@ -19,7 +19,7 @@ use crate::AppState;
         title = "RTFM API",
         version = "0.1.0",
         description = "Read The F***ing Manual - Offline CLI cheatsheet API",
-        license(name = "MIT")
+        license(name = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0.html")
     ),
     paths(
         search::search,

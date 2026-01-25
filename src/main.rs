@@ -162,6 +162,8 @@ async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<
 
   // 启动服务器
   let addr: SocketAddr = format!("{}:{}", bind, port).parse()?;
+  println!("RTFM HTTP server listening on http://{}", addr);
+  println!("Swagger UI: http://{}/swagger-ui", addr);
   tracing::info!("HTTP server listening on http://{}", addr);
 
   let listener = tokio::net::TcpListener::bind(addr).await?;
