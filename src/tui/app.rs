@@ -47,6 +47,8 @@ pub struct App {
   pub selected: usize,
   /// 详情滚动位置
   pub detail_scroll: u16,
+  /// 详情内容最大可滚动行数
+  pub detail_max_scroll: u16,
   /// 当前焦点
   pub focus: Focus,
 
@@ -95,6 +97,7 @@ impl App {
       results: Vec::new(),
       selected: 0,
       detail_scroll: 0,
+      detail_max_scroll: 0,
       focus: Focus::Search,
       status: format!("{} commands total", total),
       loading: false,
@@ -239,7 +242,14 @@ impl App {
 
   /// 详情滚动下
   pub fn detail_scroll_down(&mut self) {
-    self.detail_scroll = self.detail_scroll.saturating_add(1);
+    if self.detail_scroll < self.detail_max_scroll {
+      self.detail_scroll = self.detail_scroll.saturating_add(1);
+    }
+  }
+
+  /// 设置详情最大滚动值
+  pub fn set_detail_max_scroll(&mut self, content_lines: u16, visible_lines: u16) {
+    self.detail_max_scroll = content_lines.saturating_sub(visible_lines);
   }
 
   /// 切换焦点

@@ -2,7 +2,7 @@ use ratatui::{
   layout::{Alignment, Constraint, Direction, Layout, Rect},
   style::{Color, Modifier, Style},
   text::{Line, Span},
-  widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+  widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
   Frame,
 };
 
@@ -24,7 +24,7 @@ const LOGO: [&str; 7] = [
 const LOGO_HEIGHT: u16 = 7;
 
 /// 主界面渲染
-pub fn render(frame: &mut Frame, app: &App) {
+pub fn render(frame: &mut Frame, app: &mut App) {
   let area = frame.area();
   // 最小高度需求：搜索框 3 + 主内容 5 + 状态栏 1 + logo 7 = 16
   // 带日志面板：16 + 10 = 26
@@ -163,7 +163,7 @@ fn render_search_bar(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// 渲染主内容区
-fn render_main(frame: &mut Frame, app: &App, area: Rect) {
+fn render_main(frame: &mut Frame, app: &mut App, area: Rect) {
   let chunks = Layout::default()
     .direction(Direction::Horizontal)
     .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
@@ -221,18 +221,8 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
         Style::default()
       };
 
-      let content = Line::from(vec![
-        Span::styled(&result.name, style),
-        Span::styled(
-          format!(" - {}", truncate(&result.description, 30)),
-          if i == app.selected {
-            style
-          } else {
-            Style::default().fg(Color::DarkGray)
-          },
-        ),
-      ]);
-
+      // Show full command name, let ratatui handle overflow
+      let content = Line::from(Span::styled(&result.name, style));
       ListItem::new(content)
     })
     .collect();
@@ -243,11 +233,14 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
       .add_modifier(Modifier::BOLD),
   );
 
-  frame.render_widget(list, area);
+  // Use ListState for proper scrolling when selected item is out of view
+  let mut list_state = ListState::default();
+  list_state.select(Some(app.selected));
+  frame.render_stateful_widget(list, area, &mut list_state);
 }
 
 /// 渲染命令详情
-fn render_detail(frame: &mut Frame, app: &App, area: Rect) {
+fn render_detail(frame: &mut Frame, app: &mut App, area: Rect) {
   let detail_style = if app.focus == Focus::Detail {
     Style::default().fg(Color::Yellow)
   } else {
@@ -303,6 +296,11 @@ fn render_detail(frame: &mut Frame, app: &App, area: Rect) {
     })
     .collect();
 
+  // Calculate and set max scroll
+  let content_lines = lines.len() as u16;
+  let visible_lines = area.height.saturating_sub(2); // subtract border
+  app.set_detail_max_scroll(content_lines, visible_lines);
+
   let paragraph = Paragraph::new(lines)
     .block(block)
     .wrap(Wrap { trim: false })
@@ -354,21 +352,42 @@ fn render_log_panel(frame: &mut Frame, app: &App, area: Rect) {
 
 /// 渲染状态栏
 fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-  let chunks = Layout::default()
-    .direction(Direction::Horizontal)
-    .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-    .split(area);
+  // When an item is selected, show full name + description using entire width
+  if let Some((name, lang)) = app.selected_command() {
+    let desc = app.results.get(app.selected)
+      .map(|r| r.description.as_str())
+      .unwrap_or("");
+    
+    // Calculate available space: total width - name - " [xx] - " (about 8 chars)
+    let prefix = format!(" {} [{}]", name, lang);
+    let prefix_len = prefix.chars().count();
+    let available = (area.width as usize).saturating_sub(prefix_len + 4);
+    
+    let text = if available > 10 && !desc.is_empty() {
+      format!("{} - {}", prefix, truncate(desc, available))
+    } else {
+      prefix
+    };
+    
+    let status = Paragraph::new(text)
+      .style(Style::default().fg(Color::Cyan));
+    frame.render_widget(status, area);
+  } else {
+    // No selection: show status on left, hints on right
+    let chunks = Layout::default()
+      .direction(Direction::Horizontal)
+      .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+      .split(area);
 
-  // 左侧状态
-  let status = Paragraph::new(format!(" {} ", app.status))
-    .style(Style::default().fg(Color::Cyan));
-  frame.render_widget(status, chunks[0]);
+    let status = Paragraph::new(format!(" {}", app.status))
+      .style(Style::default().fg(Color::Cyan));
+    frame.render_widget(status, chunks[0]);
 
-  // 右侧：导航提示 + 版本信息
-  let hints = Paragraph::new("[↑↓/jk] Nav  [Enter] View  Rust-powered CLI Cheatsheet ")
-    .style(Style::default().fg(Color::DarkGray))
-    .alignment(Alignment::Right);
-  frame.render_widget(hints, chunks[1]);
+    let hints = Paragraph::new("[↑↓/jk] Nav  [Enter] View ")
+      .style(Style::default().fg(Color::DarkGray))
+      .alignment(Alignment::Right);
+    frame.render_widget(hints, chunks[1]);
+  }
 }
 
 /// 渲染帮助弹窗
@@ -408,6 +427,10 @@ fn render_help_popup(frame: &mut Frame) {
     Line::from(vec![
       Span::styled("  PgUp/Dn  ", Style::default().fg(Color::Yellow)),
       Span::raw("Page up/down"),
+    ]),
+    Line::from(vec![
+      Span::styled("  g / G    ", Style::default().fg(Color::Yellow)),
+      Span::raw("Jump to first/last"),
     ]),
     Line::from(vec![
       Span::styled("  Ctrl+H   ", Style::default().fg(Color::Yellow)),

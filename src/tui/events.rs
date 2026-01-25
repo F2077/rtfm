@@ -152,12 +152,14 @@ fn handle_list_input(app: &mut App, key: KeyEvent) -> EventResult {
       app.list_page_down();
       EventResult::Continue
     }
-    KeyCode::Home => {
+    // Jump to top (Home or 'g' for vim-style gg)
+    KeyCode::Home | KeyCode::Char('g') => {
       app.selected = 0;
       app.detail_scroll = 0;
       EventResult::Continue
     }
-    KeyCode::End => {
+    // Jump to end (End or 'G' for vim-style)
+    KeyCode::End | KeyCode::Char('G') => {
       app.selected = app.results.len().saturating_sub(1);
       app.detail_scroll = 0;
       EventResult::Continue
@@ -196,12 +198,22 @@ fn handle_detail_input(app: &mut App, key: KeyEvent) -> EventResult {
       app.detail_scroll_down();
       EventResult::Continue
     }
-    KeyCode::PageUp => {
+    KeyCode::PageUp | KeyCode::Char('g') => {
       app.detail_scroll = app.detail_scroll.saturating_sub(10);
       EventResult::Continue
     }
-    KeyCode::PageDown => {
-      app.detail_scroll = app.detail_scroll.saturating_add(10);
+    KeyCode::PageDown | KeyCode::Char('G') => {
+      app.detail_scroll = app.detail_scroll.saturating_add(10).min(app.detail_max_scroll);
+      EventResult::Continue
+    }
+    // Jump to top
+    KeyCode::Home => {
+      app.detail_scroll = 0;
+      EventResult::Continue
+    }
+    // Jump to end
+    KeyCode::End => {
+      app.detail_scroll = app.detail_max_scroll;
       EventResult::Continue
     }
     // 切换焦点
