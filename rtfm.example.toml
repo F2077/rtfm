@@ -1,0 +1,59 @@
+# RTFM Configuration File
+# Copy this file to rtfm.toml and customize as needed.
+# All values shown here are the defaults - you only need to specify values you want to change.
+
+[server]
+# HTTP server port
+port = 3030
+# HTTP server bind address
+bind = "127.0.0.1"
+# Maximum file upload size in bytes (100MB)
+max_upload_size = 104857600
+
+[search]
+# Default number of search results
+default_limit = 20
+# Maximum number of search results
+max_limit = 100
+# Index writer buffer size (bytes)
+index_buffer_size = 50000000
+# Default language for queries
+default_lang = "en"
+
+[tui]
+# Event poll timeout (milliseconds)
+poll_timeout_ms = 100
+# Debug log buffer size (number of entries)
+log_buffer_size = 100
+# Detail view scroll step
+scroll_step = 1
+
+[storage]
+# Data directory (leave empty for default: ~/.local/share/rtfm)
+# Can also be set via RTFM_DATA_DIR environment variable
+# data_dir = "/custom/path/to/data"
+
+# Database filename
+db_filename = "data.redb"
+# Search index directory name
+index_dirname = "index"
+# Log directory name
+log_dirname = "logs"
+
+[logging]
+# Default log level
+level = "info"
+# Debug mode log level
+debug_level = "debug,tantivy=info"
+
+[update]
+# tldr-pages GitHub API URL (for checking latest version)
+github_api_url = "https://api.github.com/repos/tldr-pages/tldr/releases/latest"
+# Download URL template ({version} will be replaced with the version tag)
+download_url_template = "https://github.com/tldr-pages/tldr/archive/refs/tags/{version}.zip"
+# HTTP User-Agent header
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+# Fallback version when API is unavailable
+fallback_version = "v2.3"
+# Languages to import (empty = all languages)
+languages = ["en", "zh"]
