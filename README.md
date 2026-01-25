@@ -158,7 +158,8 @@ rtfm --debug  # With debug log panel
 | `Tab` | Cycle focus (Search → List → Detail) |
 | `Esc` | Back / clear search / quit |
 | `PgUp/PgDn` | Page up/down |
-| `Home/End` or `g/G` | Jump to first/last |
+| `Home/End` | Jump to first/last |
+| `g/G` | Jump to first/last (list) / Page up/down (detail) |
 | `?` | Toggle help (when not in search) |
 | `Ctrl+H` | Toggle help (works everywhere) |
 | `Ctrl+L` | Toggle debug logs (requires --debug) |

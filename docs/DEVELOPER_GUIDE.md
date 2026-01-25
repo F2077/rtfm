@@ -361,7 +361,7 @@ pub async fn new_endpoint(
 rtfm --debug
 ```
 
-Press F12 to toggle log panel in TUI.
+Press Ctrl+L to toggle log panel in TUI (requires `--debug` flag).
 
 ### Logging
 

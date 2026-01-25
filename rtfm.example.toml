@@ -7,6 +7,8 @@
 port = 3030
 # HTTP server bind address
 bind = "127.0.0.1"
+# Maximum file upload size in bytes (100MB)
+max_upload_size = 104857600
 
 [search]
 # Default number of search results
@@ -53,3 +55,5 @@ download_url_template = "https://github.com/tldr-pages/tldr/archive/refs/tags/{v
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 # Fallback version when API is unavailable
 fallback_version = "v2.3"
+# Languages to import (empty = all languages)
+languages = ["en", "zh"]

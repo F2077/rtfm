@@ -34,7 +34,7 @@ rtfm -l zh docker # Chinese language
 - Three-panel layout: Search / Results List / Details
 - Vim-style keyboard navigation (j/k)
 - Real-time search as you type
-- Debug log panel (F12 in debug mode)
+- Debug log panel (Ctrl+L in debug mode)
 
 ### 3. Learn from System
 
