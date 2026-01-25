@@ -4,10 +4,6 @@ use clap::{Parser, Subcommand};
 #[command(name = "rtfm")]
 #[command(author, version, about = "Read The F***ing Manual - CLI cheatsheet")]
 pub struct Cli {
-  /// Enable debug mode (show logs at TUI bottom)
-  #[arg(short, long, global = true)]
-  pub debug: bool,
-
   /// Command name to look up (e.g., rtfm tar)
   #[arg(value_name = "NAME")]
   pub query: Option<String>,
@@ -15,6 +11,10 @@ pub struct Cli {
   /// Preferred language (e.g., en, zh)
   #[arg(short, long, default_value = "en")]
   pub lang: String,
+
+  /// Enable debug mode (show logs panel in TUI)
+  #[arg(long)]
+  pub debug: bool,
 
   #[command(subcommand)]
   pub command: Option<Commands>,
@@ -31,6 +31,10 @@ pub enum Commands {
     /// Bind address
     #[arg(short, long, default_value = "127.0.0.1")]
     bind: String,
+
+    /// Run in background (detach from terminal)
+    #[arg(long)]
+    detach: bool,
   },
 
   /// Update command cheatsheet data
@@ -86,7 +90,7 @@ pub enum Commands {
 
   /// Backup all application data (database, index, config) to archive
   Backup {
-    /// Output file path (default: rtfm-backup.tar.gz)
+    /// Output file path
     #[arg(short, long, default_value = "rtfm-backup.tar.gz")]
     output: String,
   },

@@ -43,6 +43,26 @@ fn init_console_logging(config: &AppConfig) {
     .init();
 }
 
+/// 初始化服务器日志（输出到文件）
+fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig) {
+  let file_appender = tracing_appender::rolling::daily(log_dir, "rtfm.log");
+  let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+  
+  // Keep guard alive
+  Box::leak(Box::new(guard));
+
+  tracing_subscriber::registry()
+    .with(
+      tracing_subscriber::fmt::layer()
+        .with_writer(non_blocking)
+        .with_ansi(false)
+    )
+    .with(tracing_subscriber::EnvFilter::new(
+      std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
+    ))
+    .init();
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let cli = Cli::parse();
@@ -52,9 +72,12 @@ async fn main() -> anyhow::Result<()> {
 
   match cli.command {
     // 启动 HTTP 服务模式
-    Some(Commands::Serve { port, bind }) => {
-      init_console_logging(&config);
-      run_server(&bind, port, config).await
+    Some(Commands::Serve { port, bind, detach }) => {
+      if detach {
+        run_server_detached(&bind, port, &config)
+      } else {
+        run_server(&bind, port, config).await
+      }
     }
 
     // 更新命令
@@ -128,6 +151,13 @@ async fn run_tui(debug_mode: bool, config: AppConfig) -> anyhow::Result<()> {
 async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<()> {
   let data_dir = get_data_dir(&config);
   std::fs::create_dir_all(&data_dir)?;
+
+  // 初始化日志
+  let log_dir = data_dir.join(&config.storage.log_dirname);
+  std::fs::create_dir_all(&log_dir)?;
+
+  init_server_logging(&log_dir, &config);
+
   tracing::info!("Data directory: {:?}", data_dir);
 
   // 初始化数据库
@@ -144,7 +174,7 @@ async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<
   let state = Arc::new(AppState {
     db,
     search: RwLock::new(search),
-    data_dir,
+    data_dir: data_dir.clone(),
     config,
   });
 
@@ -164,10 +194,68 @@ async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<
   let addr: SocketAddr = format!("{}:{}", bind, port).parse()?;
   println!("RTFM HTTP server listening on http://{}", addr);
   println!("Swagger UI: http://{}/swagger-ui", addr);
+  println!("Logs: {}", log_dir.display());
+  println!("Press Ctrl+C to stop");
   tracing::info!("HTTP server listening on http://{}", addr);
 
   let listener = tokio::net::TcpListener::bind(addr).await?;
-  axum::serve(listener, app).await?;
+
+  // Graceful shutdown with Ctrl+C
+  axum::serve(listener, app)
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
+
+  println!("\nServer stopped gracefully");
+  tracing::info!("Server stopped");
+
+  Ok(())
+}
+
+/// Wait for Ctrl+C signal
+async fn shutdown_signal() {
+  tokio::signal::ctrl_c()
+    .await
+    .expect("Failed to install Ctrl+C handler");
+}
+
+/// Run server in detached/background mode
+fn run_server_detached(bind: &str, port: u16, config: &AppConfig) -> anyhow::Result<()> {
+  use std::process::{Command, Stdio};
+
+  let exe = std::env::current_exe()?;
+  let log_dir = get_data_dir(config).join(&config.storage.log_dirname);
+  std::fs::create_dir_all(&log_dir)?;
+
+  #[cfg(windows)]
+  {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    const DETACHED_PROCESS: u32 = 0x00000008;
+
+    Command::new(&exe)
+      .args(["serve", "--port", &port.to_string(), "--bind", bind])
+      .stdin(Stdio::null())
+      .stdout(Stdio::null())
+      .stderr(Stdio::null())
+      .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
+      .spawn()?;
+  }
+
+  #[cfg(unix)]
+  {
+    Command::new(&exe)
+      .args(["serve", "--port", &port.to_string(), "--bind", bind])
+      .stdin(Stdio::null())
+      .stdout(Stdio::null())
+      .stderr(Stdio::null())
+      .spawn()?;
+  }
+
+  println!("RTFM server started in background");
+  println!("  Address: http://{}:{}", bind, port);
+  println!("  Swagger: http://{}:{}/swagger-ui", bind, port);
+  println!("  Logs: {}", log_dir.display());
+  println!("\nTo stop: kill the rtfm process or use task manager");
 
   Ok(())
 }
