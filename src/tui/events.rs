@@ -55,7 +55,10 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) -> EventResult {
 
   // 帮助模式下只响应关闭
   if app.show_help {
-    if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('?')) {
+    if matches!(
+      key.code,
+      KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('?')
+    ) {
       app.show_help = false;
     }
     return EventResult::Continue;
@@ -203,7 +206,10 @@ fn handle_detail_input(app: &mut App, key: KeyEvent) -> EventResult {
       EventResult::Continue
     }
     KeyCode::PageDown | KeyCode::Char('G') => {
-      app.detail_scroll = app.detail_scroll.saturating_add(10).min(app.detail_max_scroll);
+      app.detail_scroll = app
+        .detail_scroll
+        .saturating_add(10)
+        .min(app.detail_max_scroll);
       EventResult::Continue
     }
     // Jump to top

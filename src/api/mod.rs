@@ -69,30 +69,33 @@ use crate::AppState;
 pub struct ApiDoc;
 
 pub fn routes(max_upload_size: usize) -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/health", get(health))
-        .route("/search", get(search::search))
-        .route("/command/{name}", get(data::get_command))
-        .route("/commands", get(data::list_commands))
-        .route("/metadata", get(data::get_metadata))
-        .route("/update/check", get(update::check_update))
-        .route("/update/download", post(update::download_update))
-        .route("/import", post(data::import_json))
-        .route("/import/file", post(data::import_file).layer(DefaultBodyLimit::max(max_upload_size)))
-        .route("/reset", post(data::reset_data))
-        // Learn endpoints
-        .route("/learn", post(learn::learn_command))
-        .route("/learn-all", post(learn::learn_all))
-        .route("/backup/info", get(learn::backup_info))
+  Router::new()
+    .route("/health", get(health))
+    .route("/search", get(search::search))
+    .route("/command/{name}", get(data::get_command))
+    .route("/commands", get(data::list_commands))
+    .route("/metadata", get(data::get_metadata))
+    .route("/update/check", get(update::check_update))
+    .route("/update/download", post(update::download_update))
+    .route("/import", post(data::import_json))
+    .route(
+      "/import/file",
+      post(data::import_file).layer(DefaultBodyLimit::max(max_upload_size)),
+    )
+    .route("/reset", post(data::reset_data))
+    // Learn endpoints
+    .route("/learn", post(learn::learn_command))
+    .route("/learn-all", post(learn::learn_all))
+    .route("/backup/info", get(learn::backup_info))
 }
 
 /// 创建包含 Swagger UI 的完整路由
 pub fn routes_with_docs(max_upload_size: usize) -> Router<Arc<AppState>> {
-    let api_routes = routes(max_upload_size);
-    
-    Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .nest("/api", api_routes)
+  let api_routes = routes(max_upload_size);
+
+  Router::new()
+    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    .nest("/api", api_routes)
 }
 
 /// Health check endpoint
@@ -105,5 +108,5 @@ pub fn routes_with_docs(max_upload_size: usize) -> Router<Arc<AppState>> {
     tag = "Health"
 )]
 async fn health() -> &'static str {
-    "OK"
+  "OK"
 }

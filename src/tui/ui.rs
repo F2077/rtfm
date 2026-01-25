@@ -30,7 +30,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
   // 带日志面板：16 + 10 = 26
   let min_height_for_logo = if app.show_logs { 26 } else { 16 };
   let show_logo = area.height >= min_height_for_logo;
-  
+
   // 构建布局约束
   let constraints = if show_logo {
     if app.show_logs {
@@ -70,15 +70,15 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     .split(area);
 
   let mut idx = 0;
-  
+
   if show_logo {
     render_logo(frame, chunks[idx]);
     idx += 1;
   }
-  
+
   render_search_bar(frame, app, chunks[idx]);
   idx += 1;
-  
+
   render_main(frame, app, chunks[idx]);
   idx += 1;
 
@@ -86,7 +86,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     render_log_panel(frame, app, chunks[idx]);
     idx += 1;
   }
-  
+
   render_status_bar(frame, app, chunks[idx]);
 
   // 帮助弹窗
@@ -134,7 +134,10 @@ fn render_search_bar(frame: &mut Frame, app: &App, area: Rect) {
 
   // 搜索内容
   let search_text = if app.query.is_empty() && app.focus != Focus::Search {
-    Span::styled("Type to search commands...", Style::default().fg(Color::DarkGray))
+    Span::styled(
+      "Type to search commands...",
+      Style::default().fg(Color::DarkGray),
+    )
   } else {
     Span::raw(&app.query)
   };
@@ -151,7 +154,7 @@ fn render_search_bar(frame: &mut Frame, app: &App, area: Rect) {
   let hints = Paragraph::new(" [Tab] Switch  [Ctrl+H] Help  [Esc] Back/Quit")
     .style(Style::default().fg(Color::DarkGray))
     .alignment(Alignment::Right);
-  
+
   // 垂直居中显示提示
   let hint_area = Rect {
     x: chunks[1].x,
@@ -318,14 +321,14 @@ fn render_log_panel(frame: &mut Frame, app: &App, area: Rect) {
 
   let logs = app.get_logs();
   let inner_height = area.height.saturating_sub(2) as usize;
-  
+
   // 计算显示的日志范围（显示最新的日志）
   let start = if logs.len() > inner_height {
     logs.len() - inner_height
   } else {
     0
   };
-  
+
   let lines: Vec<Line> = logs
     .iter()
     .skip(start)
@@ -343,9 +346,7 @@ fn render_log_panel(frame: &mut Frame, app: &App, area: Rect) {
     })
     .collect();
 
-  let paragraph = Paragraph::new(lines)
-    .block(block)
-    .wrap(Wrap { trim: true });
+  let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
 
   frame.render_widget(paragraph, area);
 }
@@ -354,23 +355,24 @@ fn render_log_panel(frame: &mut Frame, app: &App, area: Rect) {
 fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
   // When an item is selected, show full name + description using entire width
   if let Some((name, lang)) = app.selected_command() {
-    let desc = app.results.get(app.selected)
+    let desc = app
+      .results
+      .get(app.selected)
       .map(|r| r.description.as_str())
       .unwrap_or("");
-    
+
     // Calculate available space: total width - name - " [xx] - " (about 8 chars)
     let prefix = format!(" {} [{}]", name, lang);
     let prefix_len = prefix.chars().count();
     let available = (area.width as usize).saturating_sub(prefix_len + 4);
-    
+
     let text = if available > 10 && !desc.is_empty() {
       format!("{} - {}", prefix, truncate(desc, available))
     } else {
       prefix
     };
-    
-    let status = Paragraph::new(text)
-      .style(Style::default().fg(Color::Cyan));
+
+    let status = Paragraph::new(text).style(Style::default().fg(Color::Cyan));
     frame.render_widget(status, area);
   } else {
     // No selection: show status on left, hints on right
@@ -379,8 +381,7 @@ fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
       .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
       .split(area);
 
-    let status = Paragraph::new(format!(" {}", app.status))
-      .style(Style::default().fg(Color::Cyan));
+    let status = Paragraph::new(format!(" {}", app.status)).style(Style::default().fg(Color::Cyan));
     frame.render_widget(status, chunks[0]);
 
     let hints = Paragraph::new("[↑↓/jk] Nav  [Enter] View ")

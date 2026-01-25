@@ -263,7 +263,10 @@ impl App {
 
   /// 获取当前选中的命令名和语言
   pub fn selected_command(&self) -> Option<(&str, &str)> {
-    self.results.get(self.selected).map(|r| (r.name.as_str(), r.lang.as_str()))
+    self
+      .results
+      .get(self.selected)
+      .map(|r| (r.name.as_str(), r.lang.as_str()))
   }
 
   /// 获取命令详情
@@ -280,7 +283,10 @@ impl App {
     cmd.map(|cmd| {
       let mut content = format!("# {}\n\n{}\n\n", cmd.name, cmd.description);
       for example in &cmd.examples {
-        content.push_str(&format!("## {}\n```\n{}\n```\n\n", example.description, example.code));
+        content.push_str(&format!(
+          "## {}\n```\n{}\n```\n\n",
+          example.description, example.code
+        ));
       }
       content
     })

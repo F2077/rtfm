@@ -34,11 +34,7 @@ impl<S> Layer<S> for LogBufferLayer
 where
   S: tracing::Subscriber,
 {
-  fn on_event(
-    &self,
-    event: &tracing::Event<'_>,
-    _ctx: tracing_subscriber::layer::Context<'_, S>,
-  ) {
+  fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
     let mut visitor = LogVisitor::default();
     event.record(&mut visitor);
 
@@ -121,7 +117,12 @@ pub async fn run(
 }
 
 /// 初始化 TUI 日志系统
-fn init_tui_logging(data_dir: &Path, log_buffer: Option<LogBuffer>, debug_mode: bool, config: &AppConfig) {
+fn init_tui_logging(
+  data_dir: &Path,
+  log_buffer: Option<LogBuffer>,
+  debug_mode: bool,
+  config: &AppConfig,
+) {
   let log_dir = data_dir.join(&config.storage.log_dirname);
   std::fs::create_dir_all(&log_dir).ok();
 
@@ -131,23 +132,22 @@ fn init_tui_logging(data_dir: &Path, log_buffer: Option<LogBuffer>, debug_mode: 
   // 保持 guard 存活
   Box::leak(Box::new(guard));
 
-  let env_filter = tracing_subscriber::EnvFilter::new(
-    std::env::var("RUST_LOG").unwrap_or_else(|_| {
+  let env_filter =
+    tracing_subscriber::EnvFilter::new(std::env::var("RUST_LOG").unwrap_or_else(|_| {
       if debug_mode {
         config.logging.debug_level.clone()
       } else {
         config.logging.level.clone()
       }
-    }),
-  );
+    }));
 
   let file_layer = tracing_subscriber::fmt::layer()
     .with_writer(non_blocking)
     .with_ansi(false);
 
   if let Some(buffer) = log_buffer {
-    let buffer_layer = LogBufferLayer { 
-      buffer, 
+    let buffer_layer = LogBufferLayer {
+      buffer,
       max_size: config.tui.log_buffer_size,
     };
     tracing_subscriber::registry()
@@ -168,7 +168,7 @@ async fn run_app(
   app: &mut App,
 ) -> anyhow::Result<()> {
   let poll_timeout = Duration::from_millis(app.config.tui.poll_timeout_ms);
-  
+
   loop {
     // 渲染
     terminal.draw(|f| ui::render(f, app))?;

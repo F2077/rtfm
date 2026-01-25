@@ -47,7 +47,7 @@ fn init_console_logging(config: &AppConfig) {
 fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig, debug: bool) {
   let file_appender = tracing_appender::rolling::daily(log_dir, "rtfm.log");
   let (non_blocking_file, guard) = tracing_appender::non_blocking(file_appender);
-  
+
   // Keep guard alive
   Box::leak(Box::new(guard));
 
@@ -61,12 +61,9 @@ fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig, debug: boo
       .with(
         tracing_subscriber::fmt::layer()
           .with_writer(non_blocking_file)
-          .with_ansi(false)
+          .with_ansi(false),
       )
-      .with(
-        tracing_subscriber::fmt::layer()
-          .with_writer(std::io::stdout)
-      )
+      .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
       .with(env_filter)
       .init();
   } else {
@@ -75,7 +72,7 @@ fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig, debug: boo
       .with(
         tracing_subscriber::fmt::layer()
           .with_writer(non_blocking_file)
-          .with_ansi(false)
+          .with_ansi(false),
       )
       .with(env_filter)
       .init();
@@ -85,13 +82,18 @@ fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig, debug: boo
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let cli = Cli::parse();
-  
+
   // 加载配置
   let config = AppConfig::load_default();
 
   match cli.command {
     // 启动 HTTP 服务模式
-    Some(Commands::Serve { port, bind, detach, debug }) => {
+    Some(Commands::Serve {
+      port,
+      bind,
+      detach,
+      debug,
+    }) => {
       if detach {
         run_server_detached(&bind, port, &config)
       } else {
@@ -112,29 +114,39 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // 从 --help 或 man 学习命令
-    Some(Commands::Learn { command, force, man }) => {
-      run_learn(&command, force, man, &config).await
-    }
+    Some(Commands::Learn {
+      command,
+      force,
+      man,
+    }) => run_learn(&command, force, man, &config).await,
 
     // 批量学习系统 man 页面
-    Some(Commands::LearnAll { section, limit, skip_existing, prefix, source }) => {
-      run_learn_all(&section, limit, skip_existing, prefix.as_deref(), &source, &config).await
+    Some(Commands::LearnAll {
+      section,
+      limit,
+      skip_existing,
+      prefix,
+      source,
+    }) => {
+      run_learn_all(
+        &section,
+        limit,
+        skip_existing,
+        prefix.as_deref(),
+        &source,
+        &config,
+      )
+      .await
     }
 
     // 备份应用数据
-    Some(Commands::Backup { output }) => {
-      run_backup(&output, &config).await
-    }
+    Some(Commands::Backup { output }) => run_backup(&output, &config).await,
 
     // 从备份恢复数据
-    Some(Commands::Restore { path, merge }) => {
-      run_restore(&path, merge, &config).await
-    }
+    Some(Commands::Restore { path, merge }) => run_restore(&path, merge, &config).await,
 
     // 重置所有数据
-    Some(Commands::Reset { yes }) => {
-      run_reset(yes, &config).await
-    }
+    Some(Commands::Reset { yes }) => run_reset(yes, &config).await,
 
     // 无子命令时
     None => {
@@ -389,7 +401,9 @@ async fn run_import(path: &str, config: &AppConfig) -> anyhow::Result<()> {
     println!("  - Example description:");
     println!("  `command --option {{{{arg}}}}`");
     println!();
-    println!("See: https://github.com/tldr-pages/tldr/blob/main/contributing-guides/style-guide.md");
+    println!(
+      "See: https://github.com/tldr-pages/tldr/blob/main/contributing-guides/style-guide.md"
+    );
     return Ok(());
   }
 
@@ -407,7 +421,10 @@ async fn run_import(path: &str, config: &AppConfig) -> anyhow::Result<()> {
 
 /// Import commands from a path (file, directory, or archive)
 /// Returns (commands, total_files_scanned, skipped_count)
-fn import_from_path(path: &PathBuf, languages: &[String]) -> anyhow::Result<(Vec<storage::Command>, usize, usize)> {
+fn import_from_path(
+  path: &PathBuf,
+  languages: &[String],
+) -> anyhow::Result<(Vec<storage::Command>, usize, usize)> {
   let mut commands = Vec::new();
   let mut total_files = 0;
   let mut skipped = 0;
@@ -418,7 +435,10 @@ fn import_from_path(path: &PathBuf, languages: &[String]) -> anyhow::Result<(Vec
       if entry.extension().map(|e| e == "md").unwrap_or(false) {
         total_files += 1;
         let content = std::fs::read_to_string(&entry)?;
-        let filename = entry.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
+        let filename = entry
+          .file_name()
+          .and_then(|n| n.to_str())
+          .unwrap_or("unknown");
         if let Some(cmd) = update::parse_local_markdown(&content, filename) {
           commands.push(cmd);
         } else {
@@ -549,18 +569,18 @@ async fn run_query(query: &str, lang: &str, config: &AppConfig) -> anyhow::Resul
   // 如果只有一个结果，直接显示
   if results.results.len() == 1 {
     let r = &results.results[0];
-    if let Some(cmd) = db
-      .get_command(&r.name, &r.lang)
-      .ok()
-      .flatten()
-    {
+    if let Some(cmd) = db.get_command(&r.name, &r.lang).ok().flatten() {
       print_command(&cmd);
       return Ok(());
     }
   }
 
   // 多个结果，列出供选择
-  println!("\x1b[1mFound {} results for '{}':\x1b[0m\n", results.results.len(), query);
+  println!(
+    "\x1b[1mFound {} results for '{}':\x1b[0m\n",
+    results.results.len(),
+    query
+  );
   for (i, r) in results.results.iter().enumerate() {
     println!(
       "  \x1b[32m{:2}.\x1b[0m \x1b[1m{}\x1b[0m \x1b[90m[{}]\x1b[0m",
@@ -607,7 +627,12 @@ fn print_command(cmd: &storage::Command) {
 }
 
 /// 从 --help 或 man 学习命令
-async fn run_learn(command: &str, force: bool, prefer_man: bool, config: &AppConfig) -> anyhow::Result<()> {
+async fn run_learn(
+  command: &str,
+  force: bool,
+  prefer_man: bool,
+  config: &AppConfig,
+) -> anyhow::Result<()> {
   let data_dir = get_data_dir(config);
   std::fs::create_dir_all(&data_dir)?;
 
@@ -622,7 +647,10 @@ async fn run_learn(command: &str, force: bool, prefer_man: bool, config: &AppCon
   // 检查是否已存在
   if !force {
     if let Ok(Some(_)) = db.get_command(command, "local") {
-      println!("Command '{}' already learned. Use --force to re-learn.", command);
+      println!(
+        "Command '{}' already learned. Use --force to re-learn.",
+        command
+      );
       return Ok(());
     }
   }
@@ -692,17 +720,20 @@ fn print_learn_error(command: &str, help_err: &anyhow::Error, man_err: &anyhow::
 
   // 分析错误类型
   // 命令不存在：--help 返回 "program not found" 或类似错误
-  let cmd_not_found = help_err_str.contains("program not found") 
+  let cmd_not_found = help_err_str.contains("program not found")
     || help_err_str.contains("No such file")
     || help_err_str.contains("not recognized")
     || help_err_str.contains("command not found");
-  
+
   // man 不可用（Windows 常见情况）
   let man_not_available = man_err_str.contains("program not found");
 
   if cmd_not_found && man_not_available {
     // 命令不存在，且 man 也不可用
-    eprintln!("\x1b[33mCommand '{}' not found on this system.\x1b[0m", command);
+    eprintln!(
+      "\x1b[33mCommand '{}' not found on this system.\x1b[0m",
+      command
+    );
     eprintln!();
     eprintln!("Possible reasons:");
     eprintln!("  - The command is not installed");
@@ -710,34 +741,55 @@ fn print_learn_error(command: &str, help_err: &anyhow::Error, man_err: &anyhow::
     eprintln!("  - The command name is misspelled");
     eprintln!();
     eprintln!("Try:");
-    eprintln!("  - Install the command first, then run: rtfm learn {}", command);
+    eprintln!(
+      "  - Install the command first, then run: rtfm learn {}",
+      command
+    );
     eprintln!("  - Use 'rtfm update' to download cheatsheets from tldr-pages");
   } else if cmd_not_found {
     // 命令不存在，但 man 可用（返回了其他错误）
-    eprintln!("\x1b[33mCommand '{}' not found on this system.\x1b[0m", command);
+    eprintln!(
+      "\x1b[33mCommand '{}' not found on this system.\x1b[0m",
+      command
+    );
     eprintln!();
     eprintln!("The command is not installed or not in PATH.");
     eprintln!();
     eprintln!("Try:");
-    eprintln!("  - Install the command first, then run: rtfm learn {}", command);
+    eprintln!(
+      "  - Install the command first, then run: rtfm learn {}",
+      command
+    );
     eprintln!("  - Use 'rtfm update' to download cheatsheets from tldr-pages");
-    eprintln!("  - Use 'rtfm learn {} --man' to check if man page exists", command);
+    eprintln!(
+      "  - Use 'rtfm learn {} --man' to check if man page exists",
+      command
+    );
   } else if man_not_available {
     // 命令可能存在但 --help 失败了，且 man 不可用
-    eprintln!("\x1b[33mCould not get help for '{}', and 'man' is not available.\x1b[0m", command);
+    eprintln!(
+      "\x1b[33mCould not get help for '{}', and 'man' is not available.\x1b[0m",
+      command
+    );
     eprintln!();
 
     #[cfg(target_os = "windows")]
     {
       eprintln!("On Windows, 'man' pages are not available by default.");
-      eprintln!("The command '{}' exists but --help didn't provide usable output.", command);
+      eprintln!(
+        "The command '{}' exists but --help didn't provide usable output.",
+        command
+      );
       eprintln!();
       eprintln!("Details:");
       eprintln!("  --help: {}", help_err_str);
       eprintln!();
       eprintln!("Alternatives:");
       eprintln!("  - Use 'rtfm update' to download cheatsheets from tldr-pages");
-      eprintln!("  - Check if '{}' supports a different help flag (e.g., /?, -h)", command);
+      eprintln!(
+        "  - Check if '{}' supports a different help flag (e.g., /?, -h)",
+        command
+      );
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -791,9 +843,13 @@ async fn run_learn_all(
   // 确定实际使用的来源
   let actual_source = if source == "auto" {
     #[cfg(target_os = "windows")]
-    { "powershell" }
+    {
+      "powershell"
+    }
     #[cfg(not(target_os = "windows"))]
-    { "man" }
+    {
+      "man"
+    }
   } else {
     source
   };
@@ -806,11 +862,12 @@ async fn run_learn_all(
       println!("Listing man pages in section {}...", section);
       learn::list_man_pages(section)?
     }
-    "powershell" | "path" => {
-      learn::list_available_commands(actual_source)?
-    }
+    "powershell" | "path" => learn::list_available_commands(actual_source)?,
     _ => {
-      anyhow::bail!("Unknown source '{}'. Use 'man', 'powershell', 'path', or 'auto'.", source);
+      anyhow::bail!(
+        "Unknown source '{}'. Use 'man', 'powershell', 'path', or 'auto'.",
+        source
+      );
     }
   };
 
@@ -835,7 +892,11 @@ async fn run_learn_all(
     .collect();
 
   if let Some(p) = prefix {
-    println!("Filtered to {} commands with prefix '{}'", commands.len(), p);
+    println!(
+      "Filtered to {} commands with prefix '{}'",
+      commands.len(),
+      p
+    );
   }
 
   // 限制数量
@@ -872,9 +933,7 @@ async fn run_learn_all(
     match result {
       Ok((content, src)) => {
         let cmd = learn::parse_help_content(name, &content, &src);
-        if db.save_command(&cmd).is_ok()
-          && search.index_single_command(&cmd).is_ok()
-        {
+        if db.save_command(&cmd).is_ok() && search.index_single_command(&cmd).is_ok() {
           learned += 1;
         }
       }
@@ -1015,7 +1074,11 @@ async fn run_backup(output: &str, config: &AppConfig) -> anyhow::Result<()> {
   let file_size = std::fs::metadata(&output_path)?.len();
   println!("\n\x1b[32mBackup complete!\x1b[0m");
   println!("  Output: {}", output_path.display());
-  println!("  Size:   {} bytes ({:.2} MB)", file_size, file_size as f64 / 1024.0 / 1024.0);
+  println!(
+    "  Size:   {} bytes ({:.2} MB)",
+    file_size,
+    file_size as f64 / 1024.0 / 1024.0
+  );
   println!("\nTo restore on another machine:");
   println!("  rtfm restore {}", output);
 
@@ -1024,7 +1087,8 @@ async fn run_backup(output: &str, config: &AppConfig) -> anyhow::Result<()> {
 
 /// 创建备份 README
 fn create_backup_readme() -> String {
-  format!(r#"# RTFM Backup
+  format!(
+    r#"# RTFM Backup
 
 This archive contains backup data from RTFM (Read The F***ing Manual).
 
@@ -1057,7 +1121,10 @@ The database uses redb (Rust embedded database) format.
 The search index uses Tantivy format.
 
 These files are cross-platform compatible (Windows/Linux/macOS).
-"#, chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"), env!("CARGO_PKG_VERSION"))
+"#,
+    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
+    env!("CARGO_PKG_VERSION")
+  )
 }
 
 /// 从备份恢复数据
@@ -1183,11 +1250,11 @@ async fn run_reset(skip_confirm: bool, config: &AppConfig) -> anyhow::Result<()>
   // 确认
   if !skip_confirm {
     println!("\n\x1b[1mAre you sure you want to continue? [y/N]\x1b[0m ");
-    
+
     let mut input = String::new();
     std::io::stdin().read_line(&mut input)?;
     let input = input.trim().to_lowercase();
-    
+
     if input != "y" && input != "yes" {
       println!("Aborted.");
       return Ok(());
