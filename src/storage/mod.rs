@@ -13,7 +13,7 @@ pub enum StorageError {
     #[error("Database error: {0}")]
     Database(#[from] redb::DatabaseError),
     #[error("Transaction error: {0}")]
-    Transaction(#[from] redb::TransactionError),
+    Transaction(Box<redb::TransactionError>),
     #[error("Table error: {0}")]
     Table(#[from] redb::TableError),
     #[error("Commit error: {0}")]
@@ -24,6 +24,12 @@ pub enum StorageError {
     Serialization(#[from] serde_json::Error),
     #[error("Not found: {0}")]
     NotFound(String),
+}
+
+impl From<redb::TransactionError> for StorageError {
+    fn from(err: redb::TransactionError) -> Self {
+        StorageError::Transaction(Box::new(err))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

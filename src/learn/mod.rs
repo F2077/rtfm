@@ -595,7 +595,7 @@ fn parse_man_list_line(line: &str, section: &str) -> Option<(String, String)> {
     }
 
     // 提取命令名（第一个词，或逗号前的部分）
-    let name = line.split(|c| c == '(' || c == ',' || c == ' ')
+    let name = line.split(['(', ',', ' '])
         .next()?
         .trim();
 
