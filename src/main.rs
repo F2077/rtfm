@@ -44,23 +44,42 @@ fn init_console_logging(config: &AppConfig) {
 }
 
 /// 初始化服务器日志（输出到文件）
-fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig) {
+fn init_server_logging(log_dir: &std::path::Path, config: &AppConfig, debug: bool) {
   let file_appender = tracing_appender::rolling::daily(log_dir, "rtfm.log");
-  let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+  let (non_blocking_file, guard) = tracing_appender::non_blocking(file_appender);
   
   // Keep guard alive
   Box::leak(Box::new(guard));
 
-  tracing_subscriber::registry()
-    .with(
-      tracing_subscriber::fmt::layer()
-        .with_writer(non_blocking)
-        .with_ansi(false)
-    )
-    .with(tracing_subscriber::EnvFilter::new(
-      std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
-    ))
-    .init();
+  let env_filter = tracing_subscriber::EnvFilter::new(
+    std::env::var("RUST_LOG").unwrap_or_else(|_| config.logging.level.clone()),
+  );
+
+  if debug {
+    // Debug mode: dual-write to file and console
+    tracing_subscriber::registry()
+      .with(
+        tracing_subscriber::fmt::layer()
+          .with_writer(non_blocking_file)
+          .with_ansi(false)
+      )
+      .with(
+        tracing_subscriber::fmt::layer()
+          .with_writer(std::io::stdout)
+      )
+      .with(env_filter)
+      .init();
+  } else {
+    // Normal mode: file only
+    tracing_subscriber::registry()
+      .with(
+        tracing_subscriber::fmt::layer()
+          .with_writer(non_blocking_file)
+          .with_ansi(false)
+      )
+      .with(env_filter)
+      .init();
+  }
 }
 
 #[tokio::main]
@@ -72,11 +91,11 @@ async fn main() -> anyhow::Result<()> {
 
   match cli.command {
     // 启动 HTTP 服务模式
-    Some(Commands::Serve { port, bind, detach }) => {
+    Some(Commands::Serve { port, bind, detach, debug }) => {
       if detach {
         run_server_detached(&bind, port, &config)
       } else {
-        run_server(&bind, port, config).await
+        run_server(&bind, port, debug, config).await
       }
     }
 
@@ -148,7 +167,7 @@ async fn run_tui(debug_mode: bool, config: AppConfig) -> anyhow::Result<()> {
 }
 
 /// 运行 HTTP 服务
-async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<()> {
+async fn run_server(bind: &str, port: u16, debug: bool, config: AppConfig) -> anyhow::Result<()> {
   let data_dir = get_data_dir(&config);
   std::fs::create_dir_all(&data_dir)?;
 
@@ -156,7 +175,7 @@ async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<
   let log_dir = data_dir.join(&config.storage.log_dirname);
   std::fs::create_dir_all(&log_dir)?;
 
-  init_server_logging(&log_dir, &config);
+  init_server_logging(&log_dir, &config, debug);
 
   tracing::info!("Data directory: {:?}", data_dir);
 
@@ -195,6 +214,9 @@ async fn run_server(bind: &str, port: u16, config: AppConfig) -> anyhow::Result<
   println!("RTFM HTTP server listening on http://{}", addr);
   println!("Swagger UI: http://{}/swagger-ui", addr);
   println!("Logs: {}", log_dir.display());
+  if debug {
+    println!("Debug mode: ON (logs also printed to console)");
+  }
   println!("Press Ctrl+C to stop");
   tracing::info!("HTTP server listening on http://{}", addr);
 

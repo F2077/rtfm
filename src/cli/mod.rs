@@ -35,6 +35,10 @@ pub enum Commands {
     /// Run in background (detach from terminal)
     #[arg(long)]
     detach: bool,
+
+    /// Debug mode: also print logs to console
+    #[arg(long)]
+    debug: bool,
   },
 
   /// Update command cheatsheet data
