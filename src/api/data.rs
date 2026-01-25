@@ -10,9 +10,6 @@ use crate::storage::{Command, Metadata};
 use crate::update;
 use crate::AppState;
 
-/// Maximum file upload size: 100MB
-pub const MAX_UPLOAD_SIZE: usize = 100 * 1024 * 1024;
-
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ListQuery {
     /// Language filter (default: zh)

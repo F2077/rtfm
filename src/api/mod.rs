@@ -68,7 +68,7 @@ use crate::AppState;
 )]
 pub struct ApiDoc;
 
-pub fn routes() -> Router<Arc<AppState>> {
+pub fn routes(max_upload_size: usize) -> Router<Arc<AppState>> {
     Router::new()
         .route("/health", get(health))
         .route("/search", get(search::search))
@@ -78,7 +78,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/update/check", get(update::check_update))
         .route("/update/download", post(update::download_update))
         .route("/import", post(data::import_json))
-        .route("/import/file", post(data::import_file).layer(DefaultBodyLimit::max(data::MAX_UPLOAD_SIZE)))
+        .route("/import/file", post(data::import_file).layer(DefaultBodyLimit::max(max_upload_size)))
         .route("/reset", post(data::reset_data))
         // Learn endpoints
         .route("/learn", post(learn::learn_command))
@@ -87,8 +87,8 @@ pub fn routes() -> Router<Arc<AppState>> {
 }
 
 /// 创建包含 Swagger UI 的完整路由
-pub fn routes_with_docs() -> Router<Arc<AppState>> {
-    let api_routes = routes();
+pub fn routes_with_docs(max_upload_size: usize) -> Router<Arc<AppState>> {
+    let api_routes = routes(max_upload_size);
     
     Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

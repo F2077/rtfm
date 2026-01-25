@@ -33,6 +33,8 @@ pub struct ServerConfig {
     pub port: u16,
     /// 绑定地址
     pub bind: String,
+    /// 最大上传文件大小（字节）
+    pub max_upload_size: usize,
 }
 
 /// 搜索配置
@@ -108,6 +110,7 @@ impl Default for ServerConfig {
         Self {
             port: 3030,
             bind: "127.0.0.1".to_string(),
+            max_upload_size: 100 * 1024 * 1024, // 100MB
         }
     }
 }

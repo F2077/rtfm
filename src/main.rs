@@ -190,6 +190,7 @@ async fn run_server(bind: &str, port: u16, debug: bool, config: AppConfig) -> an
   tracing::info!("Search index opened: {:?}", index_path);
 
   // 创建应用状态
+  let max_upload_size = config.server.max_upload_size;
   let state = Arc::new(AppState {
     db,
     search: RwLock::new(search),
@@ -205,7 +206,7 @@ async fn run_server(bind: &str, port: u16, debug: bool, config: AppConfig) -> an
 
   // 构建路由
   let app = Router::new()
-    .merge(api::routes_with_docs())
+    .merge(api::routes_with_docs(max_upload_size))
     .layer(cors)
     .with_state(state);
 

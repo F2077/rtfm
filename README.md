@@ -14,6 +14,7 @@
   <a href="#installation">Installation</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#usage">Usage</a> •
+  <a href="#configuration">Configuration</a> •
   <a href="#tech-stack">Tech Stack</a>
 </p>
 
@@ -204,8 +205,20 @@ rtfm learn-all --limit 100 --skip-existing
 ### HTTP Server Mode
 
 ```bash
-rtfm serve --port 3030
+# Start server (default: 127.0.0.1:3030)
+rtfm serve
+
+# Custom port and bind address
+rtfm serve --port 8080 --bind 0.0.0.0
+
+# Run in background (detached from terminal)
+rtfm serve --detach
+
+# Debug mode: logs printed to both file and console
+rtfm serve --debug
 ```
+
+Swagger UI available at: `http://localhost:3030/swagger-ui`
 
 **API Endpoints:**
 
@@ -224,8 +237,6 @@ rtfm serve --port 3030
 | POST | `/api/import` | Import commands (JSON) |
 | POST | `/api/import/file` | Import file (md, zip, tar, tar.gz) |
 | POST | `/api/reset` | Factory reset |
-
-Swagger UI available at: `http://localhost:3030/swagger-ui`
 
 ### Data Management
 
@@ -290,8 +301,56 @@ rtfm/
 ├── data.redb     # Command database
 ├── index/        # Search index
 └── logs/
-    └── rtfm.log  # Rolling log file
+    └── rtfm.log.YYYY-MM-DD  # Daily rolling log files
 ```
+
+## Configuration
+
+RTFM supports optional configuration via TOML files. Configuration is loaded from (in order of priority):
+
+1. `./rtfm.toml` (current directory)
+2. `<data_dir>/config.toml`
+3. Built-in defaults
+
+You can also set `RTFM_DATA_DIR` environment variable to override the data directory.
+
+### Example Configuration
+
+Create `rtfm.toml` in your working directory or `config.toml` in the data directory:
+
+```toml
+[server]
+port = 3030
+bind = "127.0.0.1"
+max_upload_size = 104857600  # 100MB in bytes
+
+[search]
+default_limit = 20    # Default search results
+max_limit = 100       # Maximum search results
+default_lang = "en"
+
+[tui]
+poll_timeout_ms = 100
+log_buffer_size = 100
+scroll_step = 1
+
+[storage]
+# data_dir = "/custom/path"  # Override data directory
+db_filename = "data.redb"
+index_dirname = "index"
+log_dirname = "logs"
+
+[logging]
+level = "info"
+debug_level = "debug,tantivy=info"
+
+[update]
+github_api_url = "https://api.github.com/repos/tldr-pages/tldr/releases/latest"
+download_url_template = "https://github.com/tldr-pages/tldr/archive/refs/tags/{version}.zip"
+fallback_version = "v2.3"
+```
+
+All fields are optional - unspecified values use built-in defaults.
 
 ## Project Structure
 

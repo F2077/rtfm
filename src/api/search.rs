@@ -39,7 +39,9 @@ pub async fn search(
     State(state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
 ) -> Result<Json<SearchResponse>, Json<ErrorResponse>> {
-    let limit = params.limit.unwrap_or(20).min(100);
+    let default_limit = state.config.search.default_limit;
+    let max_limit = state.config.search.max_limit;
+    let limit = params.limit.unwrap_or(default_limit).min(max_limit);
     let lang = params.lang.as_deref();
 
     let search = state.search.read().await;
