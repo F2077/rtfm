@@ -104,7 +104,7 @@ pub async fn learn_command(
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct LearnAllQuery {
-    /// Man section (default: 1)
+    /// Man section (default: 1) - only used when source=man
     #[serde(default = "default_section")]
     pub section: String,
     /// Maximum commands to learn (0=unlimited)
@@ -115,10 +115,17 @@ pub struct LearnAllQuery {
     pub skip_existing: bool,
     /// Filter by prefix
     pub prefix: Option<String>,
+    /// Source type: "man" (Linux/macOS), "powershell" (Windows), "path" (all platforms), "auto" (default)
+    #[serde(default = "default_source")]
+    pub source: String,
 }
 
 fn default_section() -> String {
     "1".to_string()
+}
+
+fn default_source() -> String {
+    "auto".to_string()
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -137,7 +144,7 @@ pub struct LearnAllResponse {
     pub message: String,
 }
 
-/// Learn all man pages from a section
+/// Learn commands from the system (man pages, PowerShell, or PATH)
 #[utoipa::path(
     post,
     path = "/api/learn-all",
@@ -152,10 +159,28 @@ pub async fn learn_all(
     State(state): State<Arc<AppState>>,
     Query(params): Query<LearnAllQuery>,
 ) -> Result<Json<LearnAllResponse>, Json<ErrorResponse>> {
-    // List man pages
-    let pages = learn::list_man_pages(&params.section).map_err(|e| Json(ErrorResponse {
-        error: format!("Failed to list man pages: {}", e),
-    }))?;
+    // Determine actual source based on platform
+    let actual_source = if params.source == "auto" {
+        #[cfg(target_os = "windows")]
+        { "powershell" }
+        #[cfg(not(target_os = "windows"))]
+        { "man" }
+    } else {
+        params.source.as_str()
+    };
+
+    // Get command list based on source
+    let pages = match actual_source {
+        "man" => learn::list_man_pages(&params.section).map_err(|e| Json(ErrorResponse {
+            error: format!("Failed to list man pages: {}", e),
+        }))?,
+        "powershell" | "path" => learn::list_available_commands(actual_source).map_err(|e| Json(ErrorResponse {
+            error: format!("Failed to list commands: {}", e),
+        }))?,
+        _ => return Err(Json(ErrorResponse {
+            error: format!("Unknown source '{}'. Use 'man', 'powershell', 'path', or 'auto'.", params.source),
+        })),
+    };
 
     if pages.is_empty() {
         return Ok(Json(LearnAllResponse {
@@ -164,7 +189,7 @@ pub async fn learn_all(
             learned: 0,
             skipped: 0,
             failed: 0,
-            message: format!("No man pages found in section {}", params.section),
+            message: format!("No commands found for source '{}'", actual_source),
         }));
     }
 
@@ -173,7 +198,7 @@ pub async fn learn_all(
         .into_iter()
         .filter(|(name, _)| {
             if let Some(ref p) = params.prefix {
-                name.starts_with(p)
+                name.to_lowercase().starts_with(&p.to_lowercase())
             } else {
                 true
             }
@@ -203,8 +228,13 @@ pub async fn learn_all(
             }
         }
 
-        // Get and parse man page
-        match learn::get_man_page_with_section(&name, &params.section) {
+        // Get help content based on source
+        let result = match actual_source {
+            "man" => learn::get_man_page_with_section(&name, &params.section),
+            _ => learn::get_help_output(&name),
+        };
+
+        match result {
             Ok((content, source)) => {
                 let cmd = learn::parse_help_content(&name, &content, &source);
                 if state.db.save_command(&cmd).is_ok()
@@ -225,7 +255,7 @@ pub async fn learn_all(
         learned,
         skipped,
         failed,
-        message: format!("Learned {} commands from section {}", learned, params.section),
+        message: format!("Learned {} commands from source '{}'", learned, actual_source),
     }))
 }
 

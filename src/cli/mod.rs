@@ -60,7 +60,7 @@ pub enum Commands {
     man: bool,
   },
 
-  /// Learn all man pages from the system (Linux/macOS only)
+  /// Learn commands from the system (man pages, PowerShell, or PATH)
   LearnAll {
     /// Man section to learn (1=user commands, 8=admin commands) [Linux/macOS]
     /// On Windows: ignored, uses PowerShell cmdlets instead

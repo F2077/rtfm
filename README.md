@@ -216,6 +216,8 @@ rtfm serve --port 3030
 | GET | `/api/command/{name}?lang=<lang>` | Get command by name |
 | GET | `/api/commands?lang=<lang>` | List all commands |
 | GET | `/api/metadata` | Database metadata & stats |
+| GET | `/api/update/check` | Check for updates |
+| POST | `/api/update/download` | Download and apply updates |
 | POST | `/api/learn` | Learn a command from system |
 | POST | `/api/learn-all` | Batch learn commands |
 | GET | `/api/backup/info` | Backup information |
