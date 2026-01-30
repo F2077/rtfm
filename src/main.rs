@@ -155,14 +155,17 @@ async fn main() -> anyhow::Result<()> {
         run_query(&query, &cli.lang, &config).await
       } else {
         // 否则启动 TUI
-        run_tui(cli.debug, config).await
+        // 确定 UI 风格：命令行参数优先，否则使用配置
+        let style_str = cli.style.as_deref().unwrap_or(&config.tui.style);
+        let ui_style = tui::UiStyle::from_str(style_str);
+        run_tui(cli.debug, config, ui_style).await
       }
     }
   }
 }
 
 /// 运行 TUI 界面
-async fn run_tui(debug_mode: bool, config: AppConfig) -> anyhow::Result<()> {
+async fn run_tui(debug_mode: bool, config: AppConfig, ui_style: tui::UiStyle) -> anyhow::Result<()> {
   let data_dir = get_data_dir(&config);
   std::fs::create_dir_all(&data_dir)?;
 
@@ -175,7 +178,7 @@ async fn run_tui(debug_mode: bool, config: AppConfig) -> anyhow::Result<()> {
   let search = SearchEngine::open(&index_path)?;
 
   // 启动 TUI（日志初始化在 tui::run 内部）
-  tui::run(db, search, data_dir, debug_mode, config).await
+  tui::run(db, search, data_dir, debug_mode, config, ui_style).await
 }
 
 /// 运行 HTTP 服务

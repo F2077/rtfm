@@ -27,34 +27,32 @@
 ---
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│      _________                  "When all else fails..."                     │
-│     /        /|                                                              │
-│    /  RTFM  / |                   READ THE F***ING MANUAL                    │
-│   /________/  |   < Go on, I DARE you to ask again!                          │
-│   |  ~~~~  |  |                                                              │
-│   | MANUAL |  /                   Rust-powered CLI Cheatsheet                │
-│   |________|/                                                                │
-├────────────────────────────────────────────┬─────────────────────────────────┤
-│  Search (/ to focus)                       │ [Tab] Switch [^H] Help [Esc] Quit│
-│ > docker_                                  │                                 │
-├────────────────────────────────────────────┼─────────────────────────────────┤
-│  Commands                                  │  docker                         │
-│ ┌────────────────────────────────────────┐ │ ─────────────────────────────── │
-│ │ ► docker                         [en]  │ │  Manage Docker containers and   │
-│ │   docker-compose                 [en]  │ │  images.                        │
-│ │   docker-build                   [en]  │ │                                 │
-│ │   docker-run                     [en]  │ │  - Start a container:           │
-│ │   docker-ps                      [en]  │ │    docker run {{image}}         │
-│ │   docker-exec                    [en]  │ │                                 │
-│ │   docker-logs                    [zh]  │ │  - List running containers:     │
-│ │   docker-pull                    [zh]  │ │    docker ps                    │
-│ │                                        │ │                                 │
-│ └────────────────────────────────────────┘ │  - Stop a container:            │
-│  8 results | Page 1/1                      │    docker stop {{container}}    │
-├────────────────────────────────────────────┴─────────────────────────────────┤
-│ RTFM v0.1.0 | 3,421 commands | Lang: en | ↑↓/jk: Navigate  Enter: Select     │
-└──────────────────────────────────────────────────────────────────────────────┘
+      _________                  "When all else fails..."
+     /        /|
+    /  RTFM  / |                   READ THE F***ING MANUAL
+   /________/  |
+   |  ~~~~  |  |                   Rust-powered CLI Cheatsheet
+   | MANUAL |  /
+   |________|/
+╭─ Search ─────────────────────────────────────── [Ctrl+H] Help  [Esc] Quit ─╮
+│ > docker                                                                    │
+╰────────────────────────────────────────────────────────────────────────────╯
+╭─ Result [1/8] ─────────────────────────────────────────────────────────────╮
+│                                                                             │
+│   docker  [en]                                                              │
+│   Manage Docker containers and images.                                      │
+│                                                                             │
+│   → Run a container from an image                                           │
+│     docker run {{image}}                                                    │
+│                                                                             │
+│   → List running containers                                                 │
+│     docker ps                                                               │
+│                                                                             │
+│   → Stop a container                                                        │
+│     docker stop {{container_id}}                                            │
+│                                                                             │
+│   ↑↓ Scroll  ←→ Switch result  / Search  ? Help                             │
+╰────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ## Why RTFM?
@@ -99,6 +97,25 @@ Built entirely in **Rust**, RTFM is a single binary with no runtime dependencies
 | **Backup/Restore** | Export and share your personalized cheatsheets |
 
 ## Installation
+
+### From crates.io (Recommended)
+
+```bash
+cargo install rtfm
+```
+
+### Pre-built Binaries
+
+Download from [GitHub Releases](https://github.com/F2077/rtfm/releases):
+
+| Platform | Architecture | File |
+|----------|--------------|------|
+| Linux | x86_64 | `rtfm-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | ARM64 | `rtfm-aarch64-unknown-linux-gnu.tar.gz` |
+| macOS | Intel | `rtfm-x86_64-apple-darwin.tar.gz` |
+| macOS | Apple Silicon | `rtfm-aarch64-apple-darwin.tar.gz` |
+| macOS | Universal | `rtfm-universal-apple-darwin.tar.gz` |
+| Windows | x86_64 | `rtfm-x86_64-pc-windows-msvc.zip` |
 
 ### From Source
 
@@ -153,7 +170,7 @@ rtfm --debug  # With debug log panel
 |-----|--------|
 | `/` | Focus search box |
 | `↑↓` or `jk` | Navigate / scroll |
-| `hl` or `←→` | Switch between list and detail |
+| `←→` or `hl` | Switch results (Modern) / Focus (Classic) |
 | `Enter` | Select / confirm |
 | `Tab` | Cycle focus (Search → List → Detail) |
 | `Esc` | Back / clear search / quit |
@@ -162,6 +179,7 @@ rtfm --debug  # With debug log panel
 | `g/G` | Jump to first/last (list) / Page up/down (detail) |
 | `?` | Toggle help (when not in search) |
 | `Ctrl+H` | Toggle help (works everywhere) |
+| `Ctrl+T` | Switch UI style (Modern/Classic) |
 | `Ctrl+L` | Toggle debug logs (requires --debug) |
 | `Ctrl+C/Q` | Force quit |
 
@@ -367,10 +385,9 @@ rtfm/
 │   ├── search/      # Search engine (tantivy)
 │   ├── learn/       # Learn from --help/man
 │   └── update/      # Data update module
-├── docs/
-│   ├── SPEC.md              # Product specification
-│   ├── DEVELOPER_GUIDE.md   # For experienced devs
-│   └── RUST_BEGINNER_GUIDE.md
+├── docs/            # mdBook documentation site
+│   ├── book.toml
+│   └── src/
 ├── Cargo.toml
 └── rustfmt.toml
 ```

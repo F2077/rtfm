@@ -61,6 +61,8 @@ pub struct TuiConfig {
   pub log_buffer_size: usize,
   /// 详情滚动步长
   pub scroll_step: u16,
+  /// 界面风格：modern 或 classic
+  pub style: String,
 }
 
 /// 存储配置
@@ -132,6 +134,7 @@ impl Default for TuiConfig {
       poll_timeout_ms: 100,
       log_buffer_size: 100,
       scroll_step: 1,
+      style: "modern".to_string(),
     }
   }
 }

@@ -24,6 +24,9 @@ use crate::storage::Database;
 use app::{create_log_buffer, App, LogBuffer};
 use events::{handle_key_event, poll_event, EventResult};
 
+// Re-export UiStyle for external use
+pub use app::UiStyle;
+
 /// 自定义 tracing layer，将日志写入缓冲区
 struct LogBufferLayer {
   buffer: LogBuffer,
@@ -80,6 +83,7 @@ pub async fn run(
   data_dir: PathBuf,
   debug_mode: bool,
   config: AppConfig,
+  ui_style: UiStyle,
 ) -> anyhow::Result<()> {
   // 创建日志缓冲区
   let log_buffer = if debug_mode {
@@ -99,7 +103,7 @@ pub async fn run(
   let mut terminal = Terminal::new(backend)?;
 
   // 创建应用
-  let mut app = App::with_debug(db, search, data_dir, debug_mode, log_buffer, config);
+  let mut app = App::with_debug(db, search, data_dir, debug_mode, log_buffer, config, ui_style);
 
   debug!("TUI started");
 

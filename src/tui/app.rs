@@ -25,6 +25,30 @@ pub enum Focus {
   Detail,
 }
 
+/// 界面风格
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UiStyle {
+  #[default]
+  Modern,
+  Classic,
+}
+
+impl UiStyle {
+  pub fn from_str(s: &str) -> Self {
+    match s.to_lowercase().as_str() {
+      "classic" => UiStyle::Classic,
+      _ => UiStyle::Modern,
+    }
+  }
+
+  pub fn toggle(&self) -> Self {
+    match self {
+      UiStyle::Modern => UiStyle::Classic,
+      UiStyle::Classic => UiStyle::Modern,
+    }
+  }
+}
+
 /// 应用状态
 pub struct App {
   /// 数据库
@@ -74,6 +98,9 @@ pub struct App {
   pub log_scroll: u16,
   /// 是否显示日志面板
   pub show_logs: bool,
+
+  /// 当前界面风格
+  pub ui_style: UiStyle,
 }
 
 impl App {
@@ -84,6 +111,7 @@ impl App {
     debug_mode: bool,
     log_buffer: Option<LogBuffer>,
     config: AppConfig,
+    ui_style: UiStyle,
   ) -> Self {
     let total = db.count_commands().unwrap_or(0);
 
@@ -108,6 +136,7 @@ impl App {
       log_buffer,
       log_scroll: 0,
       show_logs: debug_mode,
+      ui_style,
     }
   }
 
@@ -156,14 +185,15 @@ impl App {
   /// 输入字符
   pub fn input_char(&mut self, c: char) {
     self.query.insert(self.cursor, c);
-    self.cursor += 1;
+    self.cursor = Self::next_char_boundary(&self.query, self.cursor);
   }
 
   /// 删除字符
   pub fn delete_char(&mut self) {
     if self.cursor > 0 {
-      self.cursor -= 1;
-      self.query.remove(self.cursor);
+      let prev = Self::prev_char_boundary(&self.query, self.cursor);
+      self.query.remove(prev);
+      self.cursor = prev;
     }
   }
 
@@ -177,14 +207,14 @@ impl App {
   /// 光标左移
   pub fn cursor_left(&mut self) {
     if self.cursor > 0 {
-      self.cursor -= 1;
+      self.cursor = Self::prev_char_boundary(&self.query, self.cursor);
     }
   }
 
   /// 光标右移
   pub fn cursor_right(&mut self) {
     if self.cursor < self.query.len() {
-      self.cursor += 1;
+      self.cursor = Self::next_char_boundary(&self.query, self.cursor);
     }
   }
 
@@ -290,5 +320,28 @@ impl App {
       }
       content
     })
+  }
+
+  /// 切换界面风格
+  pub fn toggle_style(&mut self) {
+    self.ui_style = self.ui_style.toggle();
+  }
+
+  /// 获取前一个字符的字节边界
+  fn prev_char_boundary(s: &str, byte_idx: usize) -> usize {
+    s[..byte_idx]
+      .char_indices()
+      .last()
+      .map(|(i, _)| i)
+      .unwrap_or(0)
+  }
+
+  /// 获取下一个字符的字节边界
+  fn next_char_boundary(s: &str, byte_idx: usize) -> usize {
+    s[byte_idx..]
+      .char_indices()
+      .nth(1)
+      .map(|(i, _)| byte_idx + i)
+      .unwrap_or(s.len())
   }
 }
