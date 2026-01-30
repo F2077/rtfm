@@ -16,6 +16,10 @@ pub struct Cli {
   #[arg(long)]
   pub debug: bool,
 
+  /// UI style: modern or classic
+  #[arg(long)]
+  pub style: Option<String>,
+
   #[command(subcommand)]
   pub command: Option<Commands>,
 }

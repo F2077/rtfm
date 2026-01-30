@@ -6,7 +6,7 @@ description = "Read The F***ing Manual - Offline CLI cheatsheet"
 authors = ["ubizhang@hotmail.com"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/F2077/rtfm"
-keywords = ["cli", "cheatsheet", "tldr", "manual", "help"]
+keywords = ["cli", "cheatsheet", "tldr", "manual", "help", "offline"]
 categories = ["command-line-utilities"]
 
 [[bin]]
@@ -29,6 +29,7 @@ tower-http = { version = "0.5", features = ["cors"] }
 # 全文检索
 tantivy = "0.22"
 jieba-rs = "0.7"
+unicode-width = "0.1"
 
 # 数据存储
 redb = "2.1"

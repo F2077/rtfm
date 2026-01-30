@@ -111,8 +111,12 @@ impl SearchEngine {
 
     for cmd in commands {
       let mut doc = TantivyDocument::default();
-      doc.add_text(self.name_field, &cmd.name);
-      doc.add_text(self.description_field, &cmd.description);
+
+      // 对 name 和 description 也进行 jieba 分词，保持与查询时一致
+      let tokenized_name = self.tokenize_chinese(&cmd.name);
+      let tokenized_description = self.tokenize_chinese(&cmd.description);
+      doc.add_text(self.name_field, &tokenized_name);
+      doc.add_text(self.description_field, &tokenized_description);
 
       // 对内容进行 jieba 分词后存入
       let tokenized_content = self.tokenize_chinese(&cmd.content);
@@ -135,8 +139,12 @@ impl SearchEngine {
     let mut writer: IndexWriter = self.index.writer(50_000_000)?;
 
     let mut doc = TantivyDocument::default();
-    doc.add_text(self.name_field, &cmd.name);
-    doc.add_text(self.description_field, &cmd.description);
+
+    // 对 name 和 description 也进行 jieba 分词，保持与查询时一致
+    let tokenized_name = self.tokenize_chinese(&cmd.name);
+    let tokenized_description = self.tokenize_chinese(&cmd.description);
+    doc.add_text(self.name_field, &tokenized_name);
+    doc.add_text(self.description_field, &tokenized_description);
 
     let tokenized_content = self.tokenize_chinese(&cmd.content);
     doc.add_text(self.content_field, &tokenized_content);

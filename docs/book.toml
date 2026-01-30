@@ -1,0 +1,12 @@
+[book]
+title = "RTFM - Read The F***ing Manual"
+description = "A Rust-powered CLI cheatsheet tool with TUI, full-text search, and HTTP API"
+authors = ["RTFM Contributors"]
+language = "en"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"

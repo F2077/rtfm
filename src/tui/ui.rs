@@ -2,11 +2,12 @@ use ratatui::{
   layout::{Alignment, Constraint, Direction, Layout, Rect},
   style::{Color, Modifier, Style},
   text::{Line, Span},
-  widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+  widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
   Frame,
 };
+use unicode_width::UnicodeWidthStr;
 
-use super::app::{App, Focus};
+use super::app::{App, Focus, UiStyle};
 
 /// ASCII Art Logo - 翻开的手册书本造型，致敬经典 RTFM 梗
 /// 固定 7 行高度，左对齐显示以保持排版
@@ -25,6 +26,14 @@ const LOGO_HEIGHT: u16 = 7;
 
 /// 主界面渲染
 pub fn render(frame: &mut Frame, app: &mut App) {
+  match app.ui_style {
+    UiStyle::Modern => render_modern(frame, app),
+    UiStyle::Classic => render_classic(frame, app),
+  }
+}
+
+/// Classic 风格渲染
+fn render_classic(frame: &mut Frame, app: &mut App) {
   let area = frame.area();
   // 最小高度需求：搜索框 3 + 主内容 5 + 状态栏 1 + logo 7 = 16
   // 带日志面板：16 + 10 = 26
@@ -147,7 +156,8 @@ fn render_search_bar(frame: &mut Frame, app: &App, area: Rect) {
 
   // 光标
   if app.focus == Focus::Search {
-    frame.set_cursor_position((inner.x + app.cursor as u16, inner.y));
+    let display_width = app.query[..app.cursor].width() as u16;
+    frame.set_cursor_position((inner.x + display_width, inner.y));
   }
 
   // 快捷键提示
@@ -411,7 +421,11 @@ fn render_help_popup(frame: &mut Frame) {
     ]),
     Line::from(vec![
       Span::styled("  ↑↓ / jk  ", Style::default().fg(Color::Yellow)),
-      Span::raw("Navigate"),
+      Span::raw("Navigate / Scroll"),
+    ]),
+    Line::from(vec![
+      Span::styled("  ←→ / hl  ", Style::default().fg(Color::Yellow)),
+      Span::raw("Switch results (Modern) / Focus (Classic)"),
     ]),
     Line::from(vec![
       Span::styled("  Enter    ", Style::default().fg(Color::Yellow)),
@@ -436,6 +450,10 @@ fn render_help_popup(frame: &mut Frame) {
     Line::from(vec![
       Span::styled("  Ctrl+H   ", Style::default().fg(Color::Yellow)),
       Span::raw("Toggle help (or ? outside search)"),
+    ]),
+    Line::from(vec![
+      Span::styled("  Ctrl+T   ", Style::default().fg(Color::Yellow)),
+      Span::raw("Switch UI style (Modern/Classic)"),
     ]),
     Line::from(vec![
       Span::styled("  Ctrl+L   ", Style::default().fg(Color::Yellow)),
@@ -493,4 +511,331 @@ fn truncate(s: &str, max_len: usize) -> String {
     let truncated: String = s.chars().take(max_len - 3).collect();
     format!("{}...", truncated)
   }
+}
+
+// ============================================================================
+// Modern 风格渲染 - 简约通栏布局
+// ============================================================================
+
+/// Modern 风格渲染
+/// 布局：Logo（通栏）+ 搜索框（通栏）+ 结果详情（通栏，单条）+ [日志]
+fn render_modern(frame: &mut Frame, app: &mut App) {
+  let area = frame.area();
+
+  // 检查是否有足够空间显示 Logo
+  let min_height_for_logo = if app.show_logs { 20 } else { 15 };
+  let show_logo = area.height >= min_height_for_logo;
+
+  // 布局约束
+  let constraints = if show_logo {
+    if app.show_logs {
+      vec![
+        Constraint::Length(LOGO_HEIGHT), // Logo
+        Constraint::Length(3),           // 搜索框
+        Constraint::Min(5),              // 结果详情
+        Constraint::Length(8),           // 日志
+      ]
+    } else {
+      vec![
+        Constraint::Length(LOGO_HEIGHT), // Logo
+        Constraint::Length(3),           // 搜索框
+        Constraint::Min(5),              // 结果详情
+      ]
+    }
+  } else if app.show_logs {
+    vec![
+      Constraint::Length(3), // 搜索框
+      Constraint::Min(5),    // 结果详情
+      Constraint::Length(8), // 日志
+    ]
+  } else {
+    vec![
+      Constraint::Length(3), // 搜索框
+      Constraint::Min(5),    // 结果详情
+    ]
+  };
+
+  let chunks = Layout::default()
+    .direction(Direction::Vertical)
+    .constraints(constraints)
+    .split(area);
+
+  let mut idx = 0;
+
+  // Logo
+  if show_logo {
+    render_modern_logo(frame, chunks[idx]);
+    idx += 1;
+  }
+
+  // 搜索框
+  render_modern_search(frame, app, chunks[idx]);
+  idx += 1;
+
+  // 结果详情（单条显示）
+  render_modern_result(frame, app, chunks[idx]);
+  idx += 1;
+
+  // 日志面板
+  if app.show_logs {
+    render_modern_logs(frame, app, chunks[idx]);
+  }
+
+  // 帮助弹窗
+  if app.show_help {
+    render_help_popup(frame);
+  }
+}
+
+/// Modern Logo 渲染（居中显示）
+fn render_modern_logo(frame: &mut Frame, area: Rect) {
+  let lines: Vec<Line> = LOGO
+    .iter()
+    .map(|line| {
+      Line::from(Span::styled(
+        *line,
+        Style::default()
+          .fg(Color::Rgb(255, 100, 100))
+          .add_modifier(Modifier::BOLD),
+      ))
+    })
+    .collect();
+
+  let logo = Paragraph::new(lines).alignment(Alignment::Left);
+  frame.render_widget(logo, area);
+}
+
+/// Modern 搜索框（简约风格，通栏）
+fn render_modern_search(frame: &mut Frame, app: &App, area: Rect) {
+  // 搜索框样式
+  let border_color = if app.focus == Focus::Search {
+    Color::Rgb(100, 200, 255)
+  } else {
+    Color::DarkGray
+  };
+
+  let block = Block::default()
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(border_color))
+    .title(Span::styled(
+      " Search ",
+      Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD),
+    ));
+
+  let inner = block.inner(area);
+
+  // 搜索内容
+  let prefix = Span::styled("> ", Style::default().fg(Color::Rgb(100, 200, 255)));
+  let content = if app.query.is_empty() && app.focus != Focus::Search {
+    Span::styled(
+      "Type to search... (↑↓ to navigate results)",
+      Style::default().fg(Color::DarkGray),
+    )
+  } else {
+    Span::styled(&app.query, Style::default().fg(Color::White))
+  };
+
+  // 右侧提示
+  let hint = " [Ctrl+H] Help  [Esc] Quit ";
+  let hint_width = hint.len() as u16;
+
+  let search = Paragraph::new(Line::from(vec![prefix, content])).block(block);
+  frame.render_widget(search, area);
+
+  // 右侧提示（在边框内）
+  if area.width > hint_width + 20 {
+    let hint_area = Rect {
+      x: area.x + area.width - hint_width - 1,
+      y: area.y,
+      width: hint_width,
+      height: 1,
+    };
+    let hint_widget = Paragraph::new(hint).style(Style::default().fg(Color::DarkGray));
+    frame.render_widget(hint_widget, hint_area);
+  }
+
+  // 光标
+  if app.focus == Focus::Search {
+    let display_width = app.query[..app.cursor].width() as u16;
+    frame.set_cursor_position((inner.x + 2 + display_width, inner.y));
+  }
+}
+
+/// Modern 结果显示（单条详情，通栏）
+fn render_modern_result(frame: &mut Frame, app: &mut App, area: Rect) {
+  let border_color = if app.focus == Focus::List || app.focus == Focus::Detail {
+    Color::Rgb(100, 200, 255)
+  } else {
+    Color::DarkGray
+  };
+
+  // 标题显示当前位置
+  let title = if app.results.is_empty() {
+    " Result ".to_string()
+  } else {
+    format!(" Result [{}/{}] ", app.selected + 1, app.results.len())
+  };
+
+  let block = Block::default()
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(border_color))
+    .title(Span::styled(
+      title,
+      Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD),
+    ));
+
+  // 无结果时的提示
+  if app.results.is_empty() {
+    let empty_text = if app.query.is_empty() {
+      vec![
+        Line::from(""),
+        Line::from(Span::styled(
+          "  Start typing to search commands...",
+          Style::default().fg(Color::DarkGray),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+          "  Tips: Use ↑↓ or j/k to navigate results",
+          Style::default().fg(Color::DarkGray),
+        )),
+      ]
+    } else if app.loading {
+      vec![
+        Line::from(""),
+        Line::from(Span::styled(
+          "  Searching...",
+          Style::default().fg(Color::Yellow),
+        )),
+      ]
+    } else {
+      vec![
+        Line::from(""),
+        Line::from(Span::styled(
+          "  No results found",
+          Style::default().fg(Color::DarkGray),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+          "  Try a different search term or run 'rtfm update'",
+          Style::default().fg(Color::DarkGray),
+        )),
+      ]
+    };
+    let empty = Paragraph::new(empty_text).block(block);
+    frame.render_widget(empty, area);
+    return;
+  }
+
+  // 获取当前选中的命令
+  let result = &app.results[app.selected];
+  let content = app
+    .get_command_detail(&result.name, &result.lang)
+    .unwrap_or_else(|| format!("Command not found: {}", result.name));
+
+  // 渲染命令详情（Markdown 风格）
+  let mut lines: Vec<Line> = Vec::new();
+
+  for line in content.lines() {
+    if let Some(h) = line.strip_prefix("# ") {
+      // 一级标题：命令名
+      lines.push(Line::from(vec![
+        Span::styled("  ", Style::default()),
+        Span::styled(
+          h,
+          Style::default()
+            .fg(Color::Rgb(100, 200, 255))
+            .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+          format!("  [{}]", result.lang),
+          Style::default().fg(Color::DarkGray),
+        ),
+      ]));
+    } else if let Some(h) = line.strip_prefix("## ") {
+      // 二级标题：示例描述
+      lines.push(Line::from(""));
+      lines.push(Line::from(vec![
+        Span::styled("  → ", Style::default().fg(Color::Green)),
+        Span::styled(
+          h,
+          Style::default()
+            .fg(Color::Green)
+            .add_modifier(Modifier::BOLD),
+        ),
+      ]));
+    } else if line.starts_with("```") {
+      // 代码块分隔符（跳过）
+    } else if line.starts_with("  ") || line.starts_with('\t') {
+      // 代码行
+      lines.push(Line::from(vec![
+        Span::styled("    ", Style::default()),
+        Span::styled(line.trim(), Style::default().fg(Color::Yellow)),
+      ]));
+    } else if !line.trim().is_empty() {
+      // 普通文本（描述）
+      lines.push(Line::from(vec![
+        Span::styled("  ", Style::default()),
+        Span::styled(line, Style::default().fg(Color::White)),
+      ]));
+    }
+  }
+
+  // 底部导航提示
+  lines.push(Line::from(""));
+  lines.push(Line::from(Span::styled(
+    "  ↑↓ Scroll  ←→ Switch result  / Search  ? Help",
+    Style::default().fg(Color::DarkGray),
+  )));
+
+  // 计算滚动
+  let content_lines = lines.len() as u16;
+  let visible_lines = area.height.saturating_sub(2);
+  app.set_detail_max_scroll(content_lines, visible_lines);
+
+  let paragraph = Paragraph::new(lines)
+    .block(block)
+    .wrap(Wrap { trim: false })
+    .scroll((app.detail_scroll, 0));
+
+  frame.render_widget(paragraph, area);
+}
+
+/// Modern 日志面板
+fn render_modern_logs(frame: &mut Frame, app: &App, area: Rect) {
+  let block = Block::default()
+    .borders(Borders::ALL)
+    .border_type(BorderType::Rounded)
+    .border_style(Style::default().fg(Color::Magenta))
+    .title(Span::styled(
+      " Logs [Ctrl+L close] ",
+      Style::default().fg(Color::Magenta),
+    ));
+
+  let logs = app.get_logs();
+  let inner_height = area.height.saturating_sub(2) as usize;
+  let start = logs.len().saturating_sub(inner_height);
+
+  let lines: Vec<Line> = logs
+    .iter()
+    .skip(start)
+    .map(|log| {
+      let style = if log.contains("[ERROR]") {
+        Style::default().fg(Color::Red)
+      } else if log.contains("[WARN]") {
+        Style::default().fg(Color::Yellow)
+      } else {
+        Style::default().fg(Color::DarkGray)
+      };
+      Line::from(Span::styled(format!("  {}", log), style))
+    })
+    .collect();
+
+  let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
+  frame.render_widget(paragraph, area);
 }

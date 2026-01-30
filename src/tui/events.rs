@@ -1,7 +1,7 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::time::Duration;
 
-use super::app::{App, Focus};
+use super::app::{App, Focus, UiStyle};
 
 /// 事件处理结果
 pub enum EventResult {
@@ -43,6 +43,11 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) -> EventResult {
     // Ctrl+L 切换日志面板（调试模式）
     KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
       app.toggle_logs();
+      return EventResult::Continue;
+    }
+    // Ctrl+T 切换界面风格
+    KeyCode::Char('t') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+      app.toggle_style();
       return EventResult::Continue;
     }
     // 帮助模式下 Esc 关闭帮助
@@ -137,6 +142,12 @@ fn handle_search_input(app: &mut App, key: KeyEvent) -> EventResult {
 }
 
 fn handle_list_input(app: &mut App, key: KeyEvent) -> EventResult {
+  // Modern 风格：上下滚动内容，左右切换结果
+  if app.ui_style == UiStyle::Modern {
+    return handle_modern_result_input(app, key);
+  }
+
+  // Classic 风格：原有逻辑
   match key.code {
     // 导航
     KeyCode::Up | KeyCode::Char('k') => {
@@ -191,6 +202,12 @@ fn handle_list_input(app: &mut App, key: KeyEvent) -> EventResult {
 }
 
 fn handle_detail_input(app: &mut App, key: KeyEvent) -> EventResult {
+  // Modern 风格：上下滚动内容，左右切换结果
+  if app.ui_style == UiStyle::Modern {
+    return handle_modern_result_input(app, key);
+  }
+
+  // Classic 风格：原有逻辑
   match key.code {
     // 滚动
     KeyCode::Up | KeyCode::Char('k') => {
@@ -234,6 +251,73 @@ fn handle_detail_input(app: &mut App, key: KeyEvent) -> EventResult {
     KeyCode::Char('/') => {
       app.focus = Focus::Search;
       EventResult::Continue
+    }
+    _ => EventResult::Continue,
+  }
+}
+
+/// Modern 风格的结果区导航
+/// - 上下键/jk: 滚动内容
+/// - 左右键/hl: 切换结果
+fn handle_modern_result_input(app: &mut App, key: KeyEvent) -> EventResult {
+  match key.code {
+    // 上下键：滚动内容
+    KeyCode::Up | KeyCode::Char('k') => {
+      app.detail_scroll_up();
+      EventResult::Continue
+    }
+    KeyCode::Down | KeyCode::Char('j') => {
+      app.detail_scroll_down();
+      EventResult::Continue
+    }
+    // 左右键：切换结果
+    KeyCode::Left | KeyCode::Char('h') => {
+      app.list_up();
+      app.detail_scroll = 0; // 重置滚动位置
+      EventResult::Continue
+    }
+    KeyCode::Right | KeyCode::Char('l') => {
+      app.list_down();
+      app.detail_scroll = 0; // 重置滚动位置
+      EventResult::Continue
+    }
+    // 翻页
+    KeyCode::PageUp => {
+      app.detail_scroll = app.detail_scroll.saturating_sub(10);
+      EventResult::Continue
+    }
+    KeyCode::PageDown => {
+      app.detail_scroll = app
+        .detail_scroll
+        .saturating_add(10)
+        .min(app.detail_max_scroll);
+      EventResult::Continue
+    }
+    // 跳转到首个/末个结果
+    KeyCode::Home | KeyCode::Char('g') => {
+      app.selected = 0;
+      app.detail_scroll = 0;
+      EventResult::Continue
+    }
+    KeyCode::End | KeyCode::Char('G') => {
+      app.selected = app.results.len().saturating_sub(1);
+      app.detail_scroll = 0;
+      EventResult::Continue
+    }
+    // 回到搜索框
+    KeyCode::Char('/') | KeyCode::Esc => {
+      app.focus = Focus::Search;
+      EventResult::Continue
+    }
+    KeyCode::Tab => {
+      app.focus = Focus::Search;
+      EventResult::Continue
+    }
+    // 输入字符时切换到搜索
+    KeyCode::Char(c) if c.is_alphanumeric() || c == ' ' => {
+      app.focus = Focus::Search;
+      app.input_char(c);
+      EventResult::Search
     }
     _ => EventResult::Continue,
   }
