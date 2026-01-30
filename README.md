@@ -101,7 +101,7 @@ Built entirely in **Rust**, RTFM is a single binary with no runtime dependencies
 ### From crates.io (Recommended)
 
 ```bash
-cargo install rtfm
+cargo install rtfm-dammit
 ```
 
 ### Pre-built Binaries
