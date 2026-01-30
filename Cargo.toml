@@ -6,7 +6,7 @@ description = "Read The F***ing Manual - Offline CLI cheatsheet"
 authors = ["ubizhang@hotmail.com"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/F2077/rtfm"
-keywords = ["cli", "cheatsheet", "tldr", "manual", "help", "offline"]
+keywords = ["cli", "cheatsheet", "tldr", "manual", "offline"]
 categories = ["command-line-utilities"]
 
 [[bin]]
