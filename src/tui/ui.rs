@@ -620,7 +620,9 @@ fn render_modern_search(frame: &mut Frame, app: &App, area: Rect) {
     .border_style(Style::default().fg(border_color))
     .title(Span::styled(
       " Search ",
-      Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+      Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD),
     ));
 
   let inner = block.inner(area);
@@ -651,8 +653,7 @@ fn render_modern_search(frame: &mut Frame, app: &App, area: Rect) {
       width: hint_width,
       height: 1,
     };
-    let hint_widget =
-      Paragraph::new(hint).style(Style::default().fg(Color::DarkGray));
+    let hint_widget = Paragraph::new(hint).style(Style::default().fg(Color::DarkGray));
     frame.render_widget(hint_widget, hint_area);
   }
 
@@ -684,7 +685,9 @@ fn render_modern_result(frame: &mut Frame, app: &mut App, area: Rect) {
     .border_style(Style::default().fg(border_color))
     .title(Span::styled(
       title,
-      Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+      Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD),
     ));
 
   // 无结果时的提示
@@ -742,10 +745,7 @@ fn render_modern_result(frame: &mut Frame, app: &mut App, area: Rect) {
     if let Some(h) = line.strip_prefix("# ") {
       // 一级标题：命令名
       lines.push(Line::from(vec![
-        Span::styled(
-          "  ",
-          Style::default(),
-        ),
+        Span::styled("  ", Style::default()),
         Span::styled(
           h,
           Style::default()
@@ -775,10 +775,7 @@ fn render_modern_result(frame: &mut Frame, app: &mut App, area: Rect) {
       // 代码行
       lines.push(Line::from(vec![
         Span::styled("    ", Style::default()),
-        Span::styled(
-          line.trim(),
-          Style::default().fg(Color::Yellow),
-        ),
+        Span::styled(line.trim(), Style::default().fg(Color::Yellow)),
       ]));
     } else if !line.trim().is_empty() {
       // 普通文本（描述）

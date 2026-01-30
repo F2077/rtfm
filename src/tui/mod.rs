@@ -103,7 +103,9 @@ pub async fn run(
   let mut terminal = Terminal::new(backend)?;
 
   // 创建应用
-  let mut app = App::with_debug(db, search, data_dir, debug_mode, log_buffer, config, ui_style);
+  let mut app = App::with_debug(
+    db, search, data_dir, debug_mode, log_buffer, config, ui_style,
+  );
 
   debug!("TUI started");
 

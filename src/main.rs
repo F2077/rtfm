@@ -165,7 +165,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// 运行 TUI 界面
-async fn run_tui(debug_mode: bool, config: AppConfig, ui_style: tui::UiStyle) -> anyhow::Result<()> {
+async fn run_tui(
+  debug_mode: bool,
+  config: AppConfig,
+  ui_style: tui::UiStyle,
+) -> anyhow::Result<()> {
   let data_dir = get_data_dir(&config);
   std::fs::create_dir_all(&data_dir)?;
 
