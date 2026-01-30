@@ -5,7 +5,7 @@
 The easiest way to install RTFM:
 
 ```bash
-cargo install rtfm
+cargo install rtfm-dammit
 ```
 
 This will download, compile, and install the latest version to `~/.cargo/bin/`.
